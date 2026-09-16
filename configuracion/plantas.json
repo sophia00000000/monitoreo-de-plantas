@@ -1,30 +1,48 @@
 {
   "plantas": [
     {
-      "nombre": "Planta tropical",
-      "tipo": "tropical",
+      "nombre": "Lengua de suegra (Sansevieria trifasciata)",
+      "tipo": "sansevieria",
       "criterios": [
-        { "nombre": "humedad", "minimo": 60, "maximo": 90, "unidad": "%" },
-        { "nombre": "iluminacion", "minimo": 500, "maximo": 1500, "unidad": "lux" },
-        { "nombre": "temperatura", "minimo": 20, "maximo": 32, "unidad": "°C" }
+        { "nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light" },
+        { "nombre": "iluminacion", "minimo": 100, "maximo": 800, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 35, "unidad": "C", "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light" }
       ]
     },
     {
-      "nombre": "Planta desertica",
-      "tipo": "desertica",
+      "nombre": "Aloe vera (Aloe barbadensis)",
+      "tipo": "aloe_vera",
       "criterios": [
-        { "nombre": "humedad", "minimo": 10, "maximo": 40, "unidad": "%" },
-        { "nombre": "iluminacion", "minimo": 1000, "maximo": 2500, "unidad": "lux" },
-        { "nombre": "temperatura", "minimo": 18, "maximo": 40, "unidad": "°C" }
+        { "nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis" },
+        { "nombre": "iluminacion", "minimo": 1000, "maximo": 5000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 27, "unidad": "C", "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis" }
       ]
     },
     {
-      "nombre": "Planta templada",
-      "tipo": "templada",
+      "nombre": "Arbol del caucho (Ficus elastica)",
+      "tipo": "ficus_elastica",
       "criterios": [
-        { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%" },
-        { "nombre": "iluminacion", "minimo": 300, "maximo": 1200, "unidad": "lux" },
-        { "nombre": "temperatura", "minimo": 12, "maximo": 26, "unidad": "°C" }
+        { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica" },
+        { "nombre": "iluminacion", "minimo": 500, "maximo": 2000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 29, "unidad": "C", "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica" }
+      ]
+    },
+    {
+      "nombre": "Amor de hombre (Tradescantia zebrina)",
+      "tipo": "tradescantia_zebrina",
+      "criterios": [
+        { "nombre": "humedad", "minimo": 50, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina" },
+        { "nombre": "iluminacion", "minimo": 500, "maximo": 2000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 27, "unidad": "C", "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina" }
+      ]
+    },
+    {
+      "nombre": "Potos (Epipremnum aureum)",
+      "tipo": "potos",
+      "criterios": [
+        { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum" },
+        { "nombre": "iluminacion", "minimo": 100, "maximo": 1000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 29, "unidad": "C", "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum" }
       ]
     }
   ]
