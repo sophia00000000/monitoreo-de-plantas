@@ -1,0 +1,10 @@
+nombre,tipo,criterio,minimo,maximo,unidad
+Planta tropical,tropical,humedad,60,90,%
+Planta tropical,tropical,iluminacion,500,1500,lux
+Planta tropical,tropical,temperatura,20,32,C
+Planta desertica,desertica,humedad,10,40,%
+Planta desertica,desertica,iluminacion,1000,2500,lux
+Planta desertica,desertica,temperatura,18,40,C
+Planta templada,templada,humedad,40,70,%
+Planta templada,templada,iluminacion,300,1200,lux
+Planta templada,templada,temperatura,12,26,C

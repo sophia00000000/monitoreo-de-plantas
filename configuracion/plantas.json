@@ -1,0 +1,31 @@
+{
+  "plantas": [
+    {
+      "nombre": "Planta tropical",
+      "tipo": "tropical",
+      "criterios": [
+        { "nombre": "humedad", "minimo": 60, "maximo": 90, "unidad": "%" },
+        { "nombre": "iluminacion", "minimo": 500, "maximo": 1500, "unidad": "lux" },
+        { "nombre": "temperatura", "minimo": 20, "maximo": 32, "unidad": "°C" }
+      ]
+    },
+    {
+      "nombre": "Planta desertica",
+      "tipo": "desertica",
+      "criterios": [
+        { "nombre": "humedad", "minimo": 10, "maximo": 40, "unidad": "%" },
+        { "nombre": "iluminacion", "minimo": 1000, "maximo": 2500, "unidad": "lux" },
+        { "nombre": "temperatura", "minimo": 18, "maximo": 40, "unidad": "°C" }
+      ]
+    },
+    {
+      "nombre": "Planta templada",
+      "tipo": "templada",
+      "criterios": [
+        { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%" },
+        { "nombre": "iluminacion", "minimo": 300, "maximo": 1200, "unidad": "lux" },
+        { "nombre": "temperatura", "minimo": 12, "maximo": 26, "unidad": "°C" }
+      ]
+    }
+  ]
+}
