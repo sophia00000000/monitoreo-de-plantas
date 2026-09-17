@@ -1,8 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, jsonify
 from pathlib import Path
 
 from adaptadores.adapter_csv import AdapterCsv
-from adaptadores.adapter_json import AdapterJson
 from controladores.planta_controller import crear_blueprint
 from repositorios.planta_repository import PlantaRepository
 from servicios.criterios import CriterioFactory
@@ -16,8 +15,28 @@ def create_app():
     evaluador = Evaluador(repository, CriterioFactory())
     app.register_blueprint(crear_blueprint(evaluador))
 
-    @app.get("/")
-    def index():
-        return render_template("index.html")
+    @app.errorhandler(404)
+    def recurso_no_encontrado(error):
+        return jsonify({
+            "error": "RECURSO_NO_ENCONTRADO",
+            "mensaje": "El recurso solicitado no existe.",
+            "detalle": {},
+        }), 404
+
+    @app.errorhandler(405)
+    def metodo_no_permitido(error):
+        return jsonify({
+            "error": "METODO_NO_PERMITIDO",
+            "mensaje": "El metodo HTTP no esta permitido para este recurso.",
+            "detalle": {},
+        }), 405
+
+    @app.errorhandler(500)
+    def error_interno(error):
+        return jsonify({
+            "error": "ERROR_INTERNO",
+            "mensaje": "Ocurrio un error interno en el servidor.",
+            "detalle": {},
+        }), 500
 
     return app
