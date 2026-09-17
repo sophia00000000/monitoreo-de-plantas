@@ -4,32 +4,16 @@ EVALUADOR DE PLANTAS - EXPLICACION DEL DISENO
 La aplicacion recibe especie, humedad, iluminacion y temperatura. Busca los rangos propios de la especie y clasifica cada criterio como BAJO, OPTIMO o ALTO. El indice de vitalidad resume el estado de la planta.
 
 2. ARQUITECTURA MVC
-- Modelo: modelos.py contiene las entidades CondicionesAmbientales, CriterioConfig, Planta y ResultadoEvaluacion. No dependen de Flask ni de la interfaz.
-- Vista: templates/index.html y static/ muestran la interfaz. La comunicacion se realiza con fetch y JSON, sin formularios HTML tradicionales.
-- Controlador: controladores/planta_controller.py define GET /api/plantas y POST /api/evaluar. Valida la entrada HTTP y traduce errores a respuestas JSON.
-- Servicio: servicios/evaluador.py contiene el caso de uso y las reglas de evaluacion.
-- Repositorio: repositorios/planta_repository.py transforma la configuracion del adaptador en entidades de dominio.
-- Adapter: adaptadores/adapter.py define el contrato y adaptadores/adapter_json.py lee configuracion JSON. Se puede agregar AdapterCsv sin cambiar el repositorio.
-- Factory y criterios: servicios/criterios.py contiene Criterio, CriterioFactory y las reglas concretas.
-- Main.py solo crea la aplicacion y la ejecuta; por eso conserva una responsabilidad pequena.
+ Frontend: frontend/index.html, frontend/app.js y frontend/styles.css son archivos estaticos servidos por separado. La comunicacion se realiza con fetch y JSON, sin formularios HTML tradicionales.
 
 3. POR QUE LA SOLUCION CUMPLE SOLID
 La solucion aplica SOLID porque separa las responsabilidades, depende de contratos y permite extender el comportamiento sin modificar el codigo que ya funciona.
 
 S - Single Responsibility / Responsabilidad unica
-- planta_controller.py solo se ocupa de HTTP: recibe JSON, valida la peticion y devuelve la respuesta REST.
-- evaluador.py solo coordina el caso de uso de evaluar una planta.
-- planta_repository.py solo transforma la configuracion cargada en objetos Planta y los consulta.
-- adapter_json.py solo lee el archivo JSON.
-- criterios.py solo define y ejecuta las reglas de los criterios.
-- modelos.py solo representa los datos del dominio.
 Cada clase tiene una razon concreta para cambiar. Por ejemplo, cambiar JSON por CSV afecta al adaptador, no al evaluador.
 
 O - Open/Closed / Abierto y cerrado
 El sistema esta abierto para extension y cerrado para modificacion:
-- Para agregar una planta, solo se agrega un objeto en configuracion/plantas.json.
-- Para agregar un criterio, se crea una nueva clase que implemente Criterio y se registra en CriterioFactory.
-- El evaluador recorre los criterios configurados, por lo que no contiene un if separado para cada tipo de planta.
 No es necesario modificar el controlador ni el algoritmo principal de evaluacion.
 
 L - Liskov Substitution / Sustitucion de Liskov
@@ -38,14 +22,10 @@ De la misma forma, AdapterJson puede sustituirse por otro adaptador compatible, 
 
 I - Interface Segregation / Segregacion de interfaces
 Las interfaces son pequenas y especificas:
-- Adapter solo exige cargar_configuracion_criterios().
-- Criterio solo exige evaluar(valor).
 Una clase que lea datos no tiene que implementar metodos de evaluacion, y un criterio no tiene que conocer Flask, archivos ni HTTP. Esto evita interfaces grandes con metodos innecesarios.
 
 D - Dependency Inversion / Inversion de dependencias
 Las reglas de negocio no crean directamente sus dependencias. app.py las ensambla y las inyecta:
-- AdapterJson se inyecta en PlantaRepository.
-- PlantaRepository y CriterioFactory se inyectan en Evaluador.
 El evaluador trabaja con el repositorio y la fabrica, no con el archivo JSON ni con Flask. Por eso se puede probar con un adaptador falso en memoria y se puede cambiar el origen de datos sin cambiar la logica de negocio.
 
 CONCLUSION SOLID
@@ -72,14 +52,16 @@ python -m venv .venv
 pip install -r requirements.txt
 python Main.py
 
-Despues abrir http://127.0.0.1:5000/
+En una segunda terminal, desde la raiz del proyecto, servir el frontend estatico:
+`python -m http.server 5500 --directory frontend`
+Despues abrir http://127.0.0.1:5500/
 
 Si PowerShell bloquea la activacion, se puede ejecutar directamente:
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe Main.py
 
 6. EXTENSIONES
-Para agregar una planta, edita configuracion/plantas.json y agrega otro objeto dentro de plantas. No se modifica el evaluador, controlador ni el HTML.
+Para agregar una planta, edita configuracion/plantas.csv y agrega sus filas. No se modifica el evaluador, controlador ni el frontend.
 
 Para agregar un criterio, agrega su nombre y rango en el JSON, crea una clase que implemente Criterio y registra el nombre en CriterioFactory. El evaluador y la vista ya trabajan con colecciones dinamicas.
 
@@ -99,48 +81,12 @@ Flujo principal de una evaluacion:
 10. El controlador serializa el resultado a JSON y lo devuelve a la vista.
 
 Capas y responsabilidades:
-- Presentacion: templates/index.html y static/app.js. Solo muestra datos y realiza peticiones asincronas.
-- Controladores: controladores/planta_controller.py. Traduce HTTP a objetos del dominio y objetos del dominio a respuestas HTTP.
-- Aplicacion: servicios/evaluador.py. Coordina el caso de uso sin conocer Flask, HTML ni archivos.
-- Dominio: modelos.py y servicios/criterios.py. Contiene entidades, contratos y reglas de evaluacion.
-- Infraestructura: adaptadores/ y repositorios/. Lee configuraciones y las convierte a entidades utilizables.
-- Composicion: app.py conecta las implementaciones concretas mediante inyeccion de dependencias.
 
 8. RESTRICCIONES FUNCIONALES
-- La entrada debe indicar una especie configurada.
-- La entrada debe contener `humedad`, `iluminacion` y `temperatura`.
-- Cada criterio configurado para la planta debe estar presente en el JSON recibido.
-- Los valores de los criterios deben ser numericos.
-- Un criterio es BAJO cuando su valor es menor que minimo.
-- Un criterio es OPTIMO cuando su valor esta entre minimo y maximo, incluyendo ambos limites.
-- Un criterio es ALTO cuando su valor es mayor que maximo.
-- El indice de vitalidad es SALUDABLE cuando todos los criterios son OPTIMO, EN_RIESGO cuando uno esta fuera de rango y CRITICO cuando dos o mas estan fuera de rango.
-- Si falta un dato, el servidor responde HTTP 400 con `error`, `mensaje` y `detalle`.
-- Si la especie no existe, el servidor responde HTTP 404 con `ESPECIE_NO_SOPORTADA`.
-- Los valores fisicamente imposibles responden HTTP 400 con `PARAMETRO_INVALIDO`.
-- Si el cuerpo no es JSON valido, el servidor responde HTTP 400.
-- La configuracion debe contener nombre, tipo y una lista de criterios con nombre, minimo y maximo.
 
 9. RESTRICCIONES ARQUITECTONICAS
-- La vista no contiene reglas de negocio ni rangos ambientales.
-- El controlador no evalua rangos; solo valida y coordina la peticion.
-- Evaluador no puede leer directamente el archivo JSON ni depender de Flask.
-- PlantaRepository no debe conocer detalles de la interfaz web.
-- Adapter es el unico punto responsable de interpretar un formato externo.
-- Las reglas ambientales deben implementarse mediante el contrato Criterio.
-- Las dependencias se construyen en app.py y se pasan por constructor.
-- No se deben agregar condiciones especificas por planta dentro de Evaluador.
-- No se deben duplicar los rangos ambientales en HTML, JavaScript y Python; la fuente oficial es plantas.json.
-- La configuracion JSON no reemplaza la validacion: los datos recibidos por la API siempre deben comprobarse.
 
 10. RESTRICCIONES DE LA API REST
-- GET /api/plantas solo consulta y devuelve los tipos y criterios disponibles.
-- POST /api/evaluar es el unico endpoint que modifica el flujo de evaluacion; no guarda datos en la aplicacion actual.
-- Las peticiones de evaluacion deben usar Content-Type: application/json.
-- Las respuestas exitosas usan JSON y HTTP 200.
-- Los errores de entrada usan JSON y HTTP 400.
-- La API no usa formularios HTML tradicionales ni parametros de evaluacion en la URL.
-- El frontend no debe asumir una cantidad fija de criterios; debe construir los campos a partir de GET /api/plantas.
 
 11. RESTRICCIONES DE EXTENSIBILIDAD
 Agregar una planta no requiere cambiar codigo: se agrega su configuracion al JSON con sus rangos.
@@ -149,14 +95,6 @@ Agregar un nuevo criterio requiere crear una clase que implemente Criterio y reg
 Si un nuevo criterio necesita una unidad distinta, esa unidad debe incluirse en la configuracion y presentarse en la vista sin trasladar la regla al controlador.
 
 12. LIMITES ACTUALES Y DECISIONES
-- La configuracion se carga al iniciar la aplicacion; modificar el JSON requiere reiniciar Flask.
-- Los datos de plantas se mantienen en memoria y no existe una base de datos.
-- El adaptador JSON espera una propiedad raiz llamada plantas.
-- Actualmente los criterios usan una regla de rango minimo-maximo.
-- No se persisten evaluaciones historicas.
-- El servidor incluido es el servidor de desarrollo de Flask y no esta destinado a produccion.
-- La autenticacion, autorizacion, registro de usuarios y proteccion avanzada contra abuso estan fuera del alcance de esta practica.
-- La aplicacion esta pensada para una evaluacion individual por peticion.
 
 13. JUSTIFICACION DE LAS RESTRICCIONES
 Estas restricciones evitan que la logica de negocio quede mezclada con la interfaz, el protocolo HTTP o el formato de almacenamiento. Tambien garantizan que la fuente de configuracion sea unica, que los cambios tengan un impacto pequeno y que la aplicacion pueda evolucionar hacia CSV, base de datos, nuevos criterios o nuevas plantas sin rehacer el caso de uso central.

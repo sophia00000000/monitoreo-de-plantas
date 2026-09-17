@@ -4,20 +4,20 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Evaluador de plantas</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <main class="contenedor">
         <section class="encabezado">
             <p class="eyebrow">Arquitectura de software</p>
             <h1>Evaluador de plantas</h1>
-            <p>Compara las condiciones ambientales con los criterios de cada tipo de planta.</p>
+            <p>Compara las condiciones ambientales con los criterios de cada especie.</p>
         </section>
 
         <section class="panel">
             <div class="campos">
-                <label>Tipo de planta
-                    <select id="tipo" required></select>
+                <label>Especie
+                    <select id="especie" required></select>
                 </label>
                 <div id="criterios"></div>
             </div>
@@ -26,6 +26,6 @@
 
         <section id="resultado" class="resultado oculto" aria-live="polite"></section>
     </main>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="app.js"></script>
 </body>
 </html>

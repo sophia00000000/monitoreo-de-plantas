@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 from pathlib import Path
 
 from adaptadores.adapter_csv import AdapterCsv
@@ -10,6 +11,7 @@ from servicios.evaluador import Evaluador
 
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"/api/*": {"origins": "http://127.0.0.1:5500"}})
     ruta_configuracion = Path(__file__).parent / "configuracion" / "plantas.csv"
     repository = PlantaRepository(AdapterCsv(str(ruta_configuracion)))
     evaluador = Evaluador(repository, CriterioFactory())
