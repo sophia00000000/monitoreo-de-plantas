@@ -13,11 +13,14 @@ class Evaluador:
     def listar_tipos(self) -> list[str]:
         return self._repository.listar_tipos()
 
-    def listar_criterios(self, tipo: str) -> list[str]:
+    def listar_criterios(self, tipo: str) -> list[dict]:
         planta = self._repository.obtener_por_tipo(tipo)
         if planta is None:
             raise ValueError(f"Tipo de planta no soportado: {tipo}")
-        return list(planta.criterios)
+        return [
+            {"nombre": nombre, "unidad": config.unidad}
+            for nombre, config in planta.criterios.items()
+        ]
 
     def evaluar_planta(
         self, tipo: str, condiciones: CondicionesAmbientales
@@ -37,6 +40,7 @@ class Evaluador:
                 "valor": valor,
                 "minimo": config.minimo,
                 "maximo": config.maximo,
+                "unidad": config.unidad,
                 "estado": criterio.evaluar(valor),
             }
 

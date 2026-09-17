@@ -53,14 +53,16 @@ Si manana se agrega la planta "mediterranea", se modifica solo el JSON. Si se ag
 
 4. API REST
 GET /api/plantas
-Respuesta: {"plantas": [{"tipo": "tropical", "criterios": ["humedad", "iluminacion", "temperatura"]}]}
+Respuesta: {"plantas": [{"especie": "sansevieria", "criterios": [{"nombre": "humedad", "unidad": "%"}, {"nombre": "iluminacion", "unidad": "lux"}, {"nombre": "temperatura", "unidad": "C"}]}]}
 
 POST /api/evaluar
 Content-Type: application/json
 Ejemplo de cuerpo:
-{"tipo":"tropical","humedad":75,"iluminacion":800,"temperatura":24}
+{"especie":"sansevieria","humedad":40,"luz":300,"temperatura":22}
 
-La respuesta contiene la planta, estado general y cada criterio con valor recibido, minimo, maximo y estado.
+Unidades de entrada: `humedad` se expresa en porcentaje (%), `luz` en lux y `temperatura` en grados Celsius (C). Los tres campos deben existir y contener valores numericos.
+
+La respuesta contiene la planta, `especie`, estado general y cada criterio con valor recibido, unidad, minimo, maximo y estado.
 
 5. COMO EJECUTAR EN WINDOWS POWERSHELL
 python -m venv .venv
@@ -103,7 +105,8 @@ Capas y responsabilidades:
 - Composicion: app.py conecta las implementaciones concretas mediante inyeccion de dependencias.
 
 8. RESTRICCIONES FUNCIONALES
-- La entrada debe indicar un tipo de planta configurado.
+- La entrada debe indicar una especie configurada.
+- La entrada debe contener `humedad`, `luz` y `temperatura`.
 - Cada criterio configurado para la planta debe estar presente en el JSON recibido.
 - Los valores de los criterios deben ser numericos.
 - Un criterio es BUENO cuando su valor esta entre minimo y maximo, incluyendo ambos limites.

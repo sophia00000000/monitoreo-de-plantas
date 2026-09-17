@@ -12,6 +12,7 @@ class CriterioConfig:
     tipo: str
     minimo: float
     maximo: float
+    unidad: str
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,10 @@ class ResultadoEvaluacion:
     def a_dict(self) -> dict:
         return {
             "planta": self.planta,
-            "tipo": self.tipo,
+            "especie": self.tipo,
             "estado_general": self.estado_general,
-            "criterios": self.criterios,
+            "criterios": {
+                ("luz" if nombre == "iluminacion" else nombre): criterio
+                for nombre, criterio in self.criterios.items()
+            },
         }

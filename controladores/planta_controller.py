@@ -9,11 +9,11 @@ def crear_blueprint(evaluador: Evaluador) -> Blueprint:
 
     @blueprint.get("/plantas")
     def listar_plantas():
-        tipos = evaluador.listar_tipos()
+        especies = evaluador.listar_tipos()
         return jsonify({
             "plantas": [
-                {"tipo": tipo, "criterios": evaluador.listar_criterios(tipo)}
-                for tipo in tipos
+                {"especie": especie, "criterios": evaluador.listar_criterios(especie)}
+                for especie in especies
             ]
         })
 
@@ -24,13 +24,15 @@ def crear_blueprint(evaluador: Evaluador) -> Blueprint:
             return jsonify({"error": "El cuerpo debe ser un JSON valido"}), 400
 
         try:
-            tipo = str(datos["tipo"])
+            especie = _texto_requerido(datos, "especie")
             valores = {
-                nombre: _numero(datos, nombre)
-                for nombre in evaluador.listar_criterios(tipo)
+                _criterio_interno(criterio["nombre"]): _numero(
+                    datos, _criterio_externo(criterio["nombre"])
+                )
+                for criterio in evaluador.listar_criterios(especie)
             }
             condiciones = CondicionesAmbientales(valores=valores)
-            resultado = evaluador.evaluar_planta(tipo, condiciones)
+            resultado = evaluador.evaluar_planta(especie, condiciones)
             return jsonify(resultado.a_dict())
         except KeyError as error:
             return jsonify({"error": f"Falta el campo: {error.args[0]}"}), 400
@@ -41,8 +43,27 @@ def crear_blueprint(evaluador: Evaluador) -> Blueprint:
 
 
 def _numero(datos: dict, campo: str) -> float:
+    if campo not in datos or datos[campo] in (None, ""):
+        raise ValueError(f"Falta el campo: {campo}")
     valor = datos[campo]
+    if isinstance(valor, bool):
+        raise ValueError(f"El campo {campo} debe ser numerico")
     numero = float(valor)
     if numero != numero:
         raise ValueError(f"El campo {campo} debe ser numerico")
     return numero
+
+
+def _texto_requerido(datos: dict, campo: str) -> str:
+    valor = datos.get(campo)
+    if not isinstance(valor, str) or not valor.strip():
+        raise ValueError(f"Falta el campo: {campo}")
+    return valor.strip()
+
+
+def _criterio_externo(nombre: str) -> str:
+    return "luz" if nombre == "iluminacion" else nombre
+
+
+def _criterio_interno(nombre: str) -> str:
+    return "iluminacion" if nombre == "iluminacion" else nombre

@@ -16,6 +16,7 @@ class PlantaRepository:
                     tipo=criterio["nombre"],
                     minimo=criterio["minimo"],
                     maximo=criterio["maximo"],
+                    unidad=criterio["unidad"],
                 )
                 for criterio in datos["criterios"]
             }
