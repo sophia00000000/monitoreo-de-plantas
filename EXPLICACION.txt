@@ -115,8 +115,9 @@ Capas y responsabilidades:
 - Un criterio es OPTIMO cuando su valor esta entre minimo y maximo, incluyendo ambos limites.
 - Un criterio es ALTO cuando su valor es mayor que maximo.
 - El indice de vitalidad es SALUDABLE cuando todos los criterios son OPTIMO, EN_RIESGO cuando uno esta fuera de rango y CRITICO cuando dos o mas estan fuera de rango.
-- Si falta un dato, el servidor responde HTTP 400 con un mensaje de error.
-- Si el tipo de planta no existe, el servidor responde HTTP 400.
+- Si falta un dato, el servidor responde HTTP 400 con `error`, `mensaje` y `detalle`.
+- Si la especie no existe, el servidor responde HTTP 404 con `ESPECIE_NO_SOPORTADA`.
+- Los valores fisicamente imposibles responden HTTP 400 con `PARAMETRO_INVALIDO`.
 - Si el cuerpo no es JSON valido, el servidor responde HTTP 400.
 - La configuracion debe contener nombre, tipo y una lista de criterios con nombre, minimo y maximo.
 
