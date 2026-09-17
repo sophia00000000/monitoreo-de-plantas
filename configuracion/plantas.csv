@@ -1,4 +1,4 @@
-nombre,tipo,criterio,minimo,maximo,unidad,fuente
+nombre,especie,criterio,minimo,maximo,unidad,fuente
 Lengua de suegra (Sansevieria trifasciata),sansevieria,humedad,30,60,%,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light
 Lengua de suegra (Sansevieria trifasciata),sansevieria,iluminacion,100,800,lux,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light
 Lengua de suegra (Sansevieria trifasciata),sansevieria,temperatura,18,35,C,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light

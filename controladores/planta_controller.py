@@ -17,7 +17,7 @@ def crear_blueprint(evaluador: Evaluador) -> Blueprint:
 
     @blueprint.get("/plantas")
     def listar_plantas():
-        especies = evaluador.listar_tipos()
+        especies = evaluador.listar_especies()
         return jsonify({
             "plantas": [
                 {"especie": especie, "criterios": evaluador.listar_criterios(especie)}

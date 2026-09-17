@@ -2,7 +2,7 @@
   "plantas": [
     {
       "nombre": "Lengua de suegra (Sansevieria trifasciata)",
-      "tipo": "sansevieria",
+      "especie": "sansevieria",
       "criterios": [
         { "nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light" },
         { "nombre": "iluminacion", "minimo": 100, "maximo": 800, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light" },
@@ -11,7 +11,7 @@
     },
     {
       "nombre": "Aloe vera (Aloe barbadensis)",
-      "tipo": "aloe_vera",
+      "especie": "aloe_vera",
       "criterios": [
         { "nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis" },
         { "nombre": "iluminacion", "minimo": 1000, "maximo": 5000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis" },
@@ -20,7 +20,7 @@
     },
     {
       "nombre": "Arbol del caucho (Ficus elastica)",
-      "tipo": "ficus_elastica",
+      "especie": "ficus_elastica",
       "criterios": [
         { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica" },
         { "nombre": "iluminacion", "minimo": 500, "maximo": 2000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica" },
@@ -29,7 +29,7 @@
     },
     {
       "nombre": "Amor de hombre (Tradescantia zebrina)",
-      "tipo": "tradescantia_zebrina",
+      "especie": "tradescantia_zebrina",
       "criterios": [
         { "nombre": "humedad", "minimo": 50, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina" },
         { "nombre": "iluminacion", "minimo": 500, "maximo": 2000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina" },
@@ -38,7 +38,7 @@
     },
     {
       "nombre": "Potos (Epipremnum aureum)",
-      "tipo": "potos",
+      "especie": "potos",
       "criterios": [
         { "nombre": "humedad", "minimo": 40, "maximo": 70, "unidad": "%", "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum" },
         { "nombre": "iluminacion", "minimo": 100, "maximo": 1000, "unidad": "lux", "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum" },

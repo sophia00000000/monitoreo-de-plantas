@@ -10,24 +10,24 @@ class Evaluador:
         self._repository = repository
         self._criterio_factory = criterio_factory
 
-    def listar_tipos(self) -> list[str]:
-        return self._repository.listar_tipos()
+    def listar_especies(self) -> list[str]:
+        return self._repository.listar_especies()
 
-    def listar_criterios(self, tipo: str) -> list[dict]:
-        planta = self._repository.obtener_por_tipo(tipo)
+    def listar_criterios(self, especie: str) -> list[dict]:
+        planta = self._repository.obtener_por_especie(especie)
         if planta is None:
-            raise ValueError(f"Tipo de planta no soportado: {tipo}")
+            raise ValueError(f"Especie no soportada: {especie}")
         return [
             {"nombre": nombre, "unidad": config.unidad}
             for nombre, config in planta.criterios.items()
         ]
 
     def evaluar_planta(
-        self, tipo: str, condiciones: CondicionesAmbientales
+        self, especie: str, condiciones: CondicionesAmbientales
     ) -> ResultadoEvaluacion:
-        planta = self._repository.obtener_por_tipo(tipo)
+        planta = self._repository.obtener_por_especie(especie)
         if planta is None:
-            raise ValueError(f"Tipo de planta no soportado: {tipo}")
+            raise ValueError(f"Especie no soportada: {especie}")
 
         criterios = {}
         recomendaciones = []
@@ -57,7 +57,7 @@ class Evaluador:
         )
         return ResultadoEvaluacion(
             planta=planta.nombre,
-            tipo=planta.tipo,
+            especie=planta.especie,
             indice_vitalidad=indice_vitalidad,
             criterios=criterios,
             recomendaciones=recomendaciones,

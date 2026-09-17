@@ -14,7 +14,7 @@ class AdaptadorEnMemoria(FuenteConfiguracionPlantas):
         return [
             {
                 "nombre": "Sansevieria de prueba",
-                "tipo": "sansevieria",
+                "especie": "sansevieria",
                 "criterios": [
                     {"nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%"},
                     {"nombre": "iluminacion", "minimo": 100, "maximo": 800, "unidad": "lux"},
@@ -87,7 +87,7 @@ class ReglasDeDominioTest(unittest.TestCase):
             )
 
     def test_especie_desconocida_es_rechazada_por_el_caso_de_uso(self):
-        with self.assertRaisesRegex(ValueError, "Tipo de planta no soportado"):
+        with self.assertRaisesRegex(ValueError, "Especie no soportada"):
             self.evaluador.evaluar_planta(
                 "especie_inexistente",
                 CondicionesAmbientales({"humedad": 40, "iluminacion": 300, "temperatura": 22}),

@@ -69,7 +69,7 @@ Para agregar un criterio, agrega su nombre y rango en el JSON, crea una clase qu
 La aplicacion utiliza una arquitectura por capas con MVC. Cada capa tiene una funcion delimitada y se comunica con la siguiente mediante datos y contratos definidos.
 
 Flujo principal de una evaluacion:
-1. El usuario selecciona el tipo de planta e introduce los valores ambientales en la vista.
+1. El usuario selecciona la especie e introduce los valores ambientales en el frontend.
 2. La vista envia una peticion asincrona fetch con metodo POST y cuerpo JSON.
 3. El controlador recibe la peticion REST en /api/evaluar.
 4. El controlador valida que exista un JSON y convierte los valores a numeros.

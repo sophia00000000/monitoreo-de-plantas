@@ -13,8 +13,8 @@ class FuenteConfiguracionPlantas(ABC):
 class RepositorioPlantas(Protocol):
     """Puerto que necesita la aplicacion para consultar especies."""
 
-    def obtener_por_tipo(self, tipo: str):
+    def obtener_por_especie(self, especie: str):
         ...
 
-    def listar_tipos(self) -> list[str]:
+    def listar_especies(self) -> list[str]:
         ...

@@ -1,4 +1,4 @@
-const especie = document.querySelector("#tipo");
+const especie = document.querySelector("#especie");
 const criterios = document.querySelector("#criterios");
 const resultado = document.querySelector("#resultado");
 let configuracion = {};

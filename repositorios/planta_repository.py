@@ -20,12 +20,12 @@ class PlantaRepository:
                 )
                 for criterio in datos["criterios"]
             }
-            planta = Planta(datos["nombre"], datos["tipo"], criterios)
-            plantas[planta.tipo] = planta
+            planta = Planta(datos["nombre"], datos["especie"], criterios)
+            plantas[planta.especie] = planta
         return plantas
 
-    def obtener_por_tipo(self, tipo: str) -> Planta | None:
-        return self._plantas.get(tipo.strip().lower())
+    def obtener_por_especie(self, especie: str) -> Planta | None:
+        return self._plantas.get(especie.strip().lower())
 
-    def listar_tipos(self) -> list[str]:
+    def listar_especies(self) -> list[str]:
         return list(self._plantas.keys())

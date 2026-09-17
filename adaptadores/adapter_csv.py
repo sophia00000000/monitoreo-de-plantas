@@ -13,10 +13,10 @@ class AdapterCsv(FuenteConfiguracionPlantas):
             plantas = {}
             for fila in csv.DictReader(archivo):
                 planta = plantas.setdefault(
-                    fila["tipo"],
+                    fila["especie"],
                     {
                         "nombre": fila["nombre"],
-                        "tipo": fila["tipo"],
+                        "especie": fila["especie"],
                         "criterios": [],
                     },
                 )

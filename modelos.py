@@ -18,14 +18,14 @@ class CriterioConfig:
 @dataclass(frozen=True)
 class Planta:
     nombre: str
-    tipo: str
+    especie: str
     criterios: Dict[str, CriterioConfig]
 
 
 @dataclass(frozen=True)
 class ResultadoEvaluacion:
     planta: str
-    tipo: str
+    especie: str
     indice_vitalidad: str
     criterios: Dict[str, Dict[str, float | str]]
     recomendaciones: list[str]
@@ -33,7 +33,7 @@ class ResultadoEvaluacion:
     def a_dict(self) -> dict:
         return {
             "planta": self.planta,
-            "especie": self.tipo,
+            "especie": self.especie,
             "indice_vitalidad": self.indice_vitalidad,
             "criterios": self.criterios,
             "recomendaciones": self.recomendaciones,
