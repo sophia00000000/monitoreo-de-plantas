@@ -15,7 +15,11 @@ class Criterio(ABC):
 
 class CriterioRango(Criterio):
     def evaluar(self, valor: float) -> str:
-        return "BUENO" if self.minimo <= valor <= self.maximo else "MALO"
+        if valor < self.minimo:
+            return "BAJO"
+        if valor > self.maximo:
+            return "ALTO"
+        return "OPTIMO"
 
 
 class CriterioHumedad(CriterioRango):

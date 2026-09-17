@@ -26,16 +26,18 @@ class Planta:
 class ResultadoEvaluacion:
     planta: str
     tipo: str
-    estado_general: str
+    indice_vitalidad: str
     criterios: Dict[str, Dict[str, float | str]]
+    recomendaciones: list[str]
 
     def a_dict(self) -> dict:
         return {
             "planta": self.planta,
             "especie": self.tipo,
-            "estado_general": self.estado_general,
+            "indice_vitalidad": self.indice_vitalidad,
             "criterios": {
                 ("luz" if nombre == "iluminacion" else nombre): criterio
                 for nombre, criterio in self.criterios.items()
             },
+            "recomendaciones": self.recomendaciones,
         }

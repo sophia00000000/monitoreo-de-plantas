@@ -30,28 +30,43 @@ class Evaluador:
             raise ValueError(f"Tipo de planta no soportado: {tipo}")
 
         criterios = {}
+        recomendaciones = []
         for nombre, config in planta.criterios.items():
             if nombre not in condiciones.valores:
                 raise ValueError(f"Falta la condicion: {nombre}")
             valor = condiciones.valores[nombre]
             criterio = self._criterio_factory.crear(config)
-            config = planta.criterios[nombre]
+            estado = criterio.evaluar(valor)
             criterios[nombre] = {
                 "valor": valor,
                 "minimo": config.minimo,
                 "maximo": config.maximo,
                 "unidad": config.unidad,
-                "estado": criterio.evaluar(valor),
+                "estado": estado,
             }
+            if estado != "OPTIMO":
+                recomendaciones.append(
+                    self._recomendacion(nombre, estado, config.minimo, config.maximo)
+                )
 
-        estado_general = (
-            "BUENO"
-            if all(item["estado"] == "BUENO" for item in criterios.values())
-            else "MAL ESTADO"
+        fuera_de_rango = sum(item["estado"] != "OPTIMO" for item in criterios.values())
+        indice_vitalidad = (
+            "SALUDABLE" if fuera_de_rango == 0
+            else "EN_RIESGO" if fuera_de_rango == 1
+            else "CRITICO"
         )
         return ResultadoEvaluacion(
             planta=planta.nombre,
             tipo=planta.tipo,
-            estado_general=estado_general,
+            indice_vitalidad=indice_vitalidad,
             criterios=criterios,
+            recomendaciones=recomendaciones,
         )
+
+    @staticmethod
+    def _recomendacion(nombre: str, estado: str, minimo: float, maximo: float) -> str:
+        etiquetas = {"humedad": "La humedad", "iluminacion": "La luz", "temperatura": "La temperatura"}
+        etiqueta = etiquetas.get(nombre, nombre.capitalize())
+        if estado == "BAJO":
+            return f"{etiqueta} esta por debajo del rango recomendado ({minimo}-{maximo}); aumente este parametro gradualmente."
+        return f"{etiqueta} esta por encima del rango recomendado ({minimo}-{maximo}); reduzca este parametro gradualmente."

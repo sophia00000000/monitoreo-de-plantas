@@ -47,17 +47,20 @@ async function evaluar() {
     resultado.innerHTML = `
         <div class="resultado-cabecera">
             <div><span class="etiqueta">${datos.especie}</span><h2>${datos.planta}</h2></div>
-            <strong class="estado ${datos.estado_general === "BUENO" ? "bueno" : "malo"}">${datos.estado_general}</strong>
+            <strong class="estado ${datos.indice_vitalidad === "SALUDABLE" ? "bueno" : "malo"}">${datos.indice_vitalidad}</strong>
         </div>
         <div class="criterios">
             ${Object.entries(datos.criterios).map(([nombre, criterio]) => `
                 <article class="criterio">
                     <h3>${nombre}</h3>
                     <p>${criterio.valor} ${criterio.unidad} <small>(rango ${criterio.minimo} - ${criterio.maximo} ${criterio.unidad})</small></p>
-                    <span class="estado ${criterio.estado === "BUENO" ? "bueno" : "malo"}">${criterio.estado}</span>
+                    <span class="estado ${criterio.estado === "OPTIMO" ? "bueno" : "malo"}">${criterio.estado}</span>
                 </article>
             `).join("")}
         </div>`;
+    resultado.innerHTML += `<div class="recomendaciones"><h3>Recomendaciones</h3>${datos.recomendaciones.length
+        ? `<ul>${datos.recomendaciones.map((recomendacion) => `<li>${recomendacion}</li>`).join("")}</ul>`
+        : "<p>No hay parametros fuera de rango.</p>"}</div>`;
 }
 
 document.querySelector("#evaluar").addEventListener("click", evaluar);
