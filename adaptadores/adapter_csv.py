@@ -1,10 +1,10 @@
 import csv
 from pathlib import Path
 
-from adaptadores.adapter import Adapter
+from dominio.puertos import FuenteConfiguracionPlantas
 
 
-class AdapterCsv(Adapter):
+class AdapterCsv(FuenteConfiguracionPlantas):
     def __init__(self, ruta: str):
         self._ruta = Path(ruta)
 

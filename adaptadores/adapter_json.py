@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
 
-from adaptadores.adapter import Adapter
+from dominio.puertos import FuenteConfiguracionPlantas
 
 
-class AdapterJson(Adapter):
+class AdapterJson(FuenteConfiguracionPlantas):
     def __init__(self, ruta: str):
         self._ruta = Path(ruta)
 

@@ -1,12 +1,13 @@
 import unittest
 
 from modelos import CondicionesAmbientales
+from dominio.puertos import FuenteConfiguracionPlantas
 from repositorios.planta_repository import PlantaRepository
 from servicios.criterios import CriterioFactory, CriterioRango
 from servicios.evaluador import Evaluador
 
 
-class AdaptadorEnMemoria:
+class AdaptadorEnMemoria(FuenteConfiguracionPlantas):
     """Doble de prueba: entrega configuracion sin leer archivos reales."""
 
     def cargar_configuracion_criterios(self) -> list[dict]:

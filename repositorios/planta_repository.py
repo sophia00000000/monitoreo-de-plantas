@@ -1,14 +1,14 @@
-from adaptadores.adapter import Adapter
+from dominio.puertos import FuenteConfiguracionPlantas
 from modelos import CriterioConfig, Planta
 
 
 class PlantaRepository:
     """Fuente de datos de las plantas y sus rangos ambientales."""
 
-    def __init__(self, adapter: Adapter):
+    def __init__(self, adapter: FuenteConfiguracionPlantas):
         self._plantas = self._cargar_plantas(adapter)
 
-    def _cargar_plantas(self, adapter: Adapter) -> dict[str, Planta]:
+    def _cargar_plantas(self, adapter: FuenteConfiguracionPlantas) -> dict[str, Planta]:
         plantas = {}
         for datos in adapter.cargar_configuracion_criterios():
             criterios = {

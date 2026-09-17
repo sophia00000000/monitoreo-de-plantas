@@ -18,7 +18,7 @@ No es necesario modificar el controlador ni el algoritmo principal de evaluacion
 
 L - Liskov Substitution / Sustitucion de Liskov
 Las clases CriterioHumedad, CriterioLuz y CriterioTemp son sustituibles por cualquier otra clase que implemente Criterio. Todas ofrecen el mismo metodo evaluar(valor) y devuelven el mismo contrato: BAJO, OPTIMO o ALTO.
-De la misma forma, AdapterJson puede sustituirse por otro adaptador compatible, como AdapterCsv, sin cambiar PlantaRepository.
+De la misma forma, AdapterJson puede sustituirse por otro adaptador compatible, como AdapterCsv, sin cambiar PlantaRepository. Ambos implementan `FuenteConfiguracionPlantas`, declarada en `dominio/puertos.py`.
 
 I - Interface Segregation / Segregacion de interfaces
 Las interfaces son pequenas y especificas:
@@ -74,7 +74,7 @@ Flujo principal de una evaluacion:
 3. El controlador recibe la peticion REST en /api/evaluar.
 4. El controlador valida que exista un JSON y convierte los valores a numeros.
 5. El servicio Evaluador solicita al repositorio la planta correspondiente.
-6. El repositorio obtiene las plantas que fueron cargadas por AdapterJson desde configuracion/plantas.json.
+6. El repositorio obtiene las plantas que fueron cargadas por AdapterCsv desde configuracion/plantas.csv.
 7. Evaluador solicita a CriterioFactory una regla para cada criterio configurado.
 8. Cada Criterio compara el valor recibido con minimo y maximo.
 9. Evaluador construye ResultadoEvaluacion y calcula el estado general.

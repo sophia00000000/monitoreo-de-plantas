@@ -1,12 +1,12 @@
 from modelos import CondicionesAmbientales, ResultadoEvaluacion
+from dominio.puertos import RepositorioPlantas
 from servicios.criterios import CriterioFactory
-from repositorios.planta_repository import PlantaRepository
 
 
 class Evaluador:
     """Caso de uso: evalua las condiciones contra la configuracion de una planta."""
 
-    def __init__(self, repository: PlantaRepository, criterio_factory: CriterioFactory):
+    def __init__(self, repository: RepositorioPlantas, criterio_factory: CriterioFactory):
         self._repository = repository
         self._criterio_factory = criterio_factory
 
