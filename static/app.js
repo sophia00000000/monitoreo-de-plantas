@@ -15,7 +15,7 @@ async function cargarTipos() {
 
 function pintarCriterios() {
     criterios.innerHTML = configuracion[especie.value].map((criterio) => {
-        const nombre = criterio.nombre === "iluminacion" ? "luz" : criterio.nombre;
+        const nombre = criterio.nombre;
         return `<label>${nombre} (${criterio.unidad})
             <input id="${nombre}" type="number" min="0" step="0.1" required>
         </label>`;
@@ -28,7 +28,7 @@ async function evaluar() {
     const cuerpo = {
         especie: especie.value,
         ...Object.fromEntries(configuracion[especie.value].map((criterio) => {
-            const nombre = criterio.nombre === "iluminacion" ? "luz" : criterio.nombre;
+            const nombre = criterio.nombre;
             return [nombre, document.querySelector(`#${nombre}`).value];
         })),
     };
@@ -67,7 +67,7 @@ document.querySelector("#evaluar").addEventListener("click", evaluar);
 especie.addEventListener("change", () => { pintarCriterios(); evaluar(); });
 cargarTipos().then(() => {
     document.querySelector("#humedad").value = 75;
-    document.querySelector("#luz").value = 800;
+    document.querySelector("#iluminacion").value = 800;
     document.querySelector("#temperatura").value = 24;
     return evaluar();
 }).catch(() => {

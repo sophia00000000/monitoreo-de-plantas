@@ -65,7 +65,7 @@ class Evaluador:
 
     @staticmethod
     def _recomendacion(nombre: str, estado: str, minimo: float, maximo: float) -> str:
-        etiquetas = {"humedad": "La humedad", "iluminacion": "La luz", "temperatura": "La temperatura"}
+        etiquetas = {"humedad": "La humedad", "iluminacion": "La iluminacion", "temperatura": "La temperatura"}
         etiqueta = etiquetas.get(nombre, nombre.capitalize())
         if estado == "BAJO":
             return f"{etiqueta} esta por debajo del rango recomendado ({minimo}-{maximo}); aumente este parametro gradualmente."

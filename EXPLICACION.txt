@@ -1,7 +1,7 @@
 EVALUADOR DE PLANTAS - EXPLICACION DEL DISENO
 
 1. OBJETIVO
-La aplicacion recibe especie, humedad, luz y temperatura. Busca los rangos propios de la especie y clasifica cada criterio como BAJO, OPTIMO o ALTO. El indice de vitalidad resume el estado de la planta.
+La aplicacion recibe especie, humedad, iluminacion y temperatura. Busca los rangos propios de la especie y clasifica cada criterio como BAJO, OPTIMO o ALTO. El indice de vitalidad resume el estado de la planta.
 
 2. ARQUITECTURA MVC
 - Modelo: modelos.py contiene las entidades CondicionesAmbientales, CriterioConfig, Planta y ResultadoEvaluacion. No dependen de Flask ni de la interfaz.
@@ -58,9 +58,9 @@ Respuesta: {"plantas": [{"especie": "sansevieria", "criterios": [{"nombre": "hum
 POST /api/evaluar
 Content-Type: application/json
 Ejemplo de cuerpo:
-{"especie":"sansevieria","humedad":40,"luz":300,"temperatura":22}
+{"especie":"sansevieria","humedad":40,"iluminacion":300,"temperatura":22}
 
-Unidades de entrada: `humedad` se expresa en porcentaje (%), `luz` en lux y `temperatura` en grados Celsius (C). Los tres campos deben existir y contener valores numericos.
+Unidades de entrada: `humedad` se expresa en porcentaje (%), `iluminacion` en lux y `temperatura` en grados Celsius (C). Los tres campos deben existir y contener valores numericos.
 
 La respuesta contiene la planta, `especie`, `indice_vitalidad`, cada criterio con valor recibido, unidad, minimo, maximo y estado, y una recomendacion por cada parametro fuera de rango.
 
@@ -108,7 +108,7 @@ Capas y responsabilidades:
 
 8. RESTRICCIONES FUNCIONALES
 - La entrada debe indicar una especie configurada.
-- La entrada debe contener `humedad`, `luz` y `temperatura`.
+- La entrada debe contener `humedad`, `iluminacion` y `temperatura`.
 - Cada criterio configurado para la planta debe estar presente en el JSON recibido.
 - Los valores de los criterios deben ser numericos.
 - Un criterio es BAJO cuando su valor es menor que minimo.

@@ -35,9 +35,6 @@ class ResultadoEvaluacion:
             "planta": self.planta,
             "especie": self.tipo,
             "indice_vitalidad": self.indice_vitalidad,
-            "criterios": {
-                ("luz" if nombre == "iluminacion" else nombre): criterio
-                for nombre, criterio in self.criterios.items()
-            },
+            "criterios": self.criterios,
             "recomendaciones": self.recomendaciones,
         }

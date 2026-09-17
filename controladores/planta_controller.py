@@ -46,9 +46,7 @@ def crear_blueprint(evaluador: Evaluador) -> Blueprint:
                     {"especie": especie},
                 )
             valores = {
-                _criterio_interno(criterio["nombre"]): _numero(
-                    datos, _criterio_externo(criterio["nombre"])
-                )
+                criterio["nombre"]: _numero(datos, criterio["nombre"])
                 for criterio in configuracion
             }
             condiciones = CondicionesAmbientales(valores=valores)
@@ -86,7 +84,7 @@ def _numero(datos: dict, campo: str) -> float:
         raise ParametroInvalido(campo, f"El campo {campo} debe ser un numero finito.")
     limites = {
         "humedad": (0, 100),
-        "luz": (0, None),
+        "iluminacion": (0, None),
         "temperatura": (-50, 60),
     }
     minimo, maximo = limites.get(campo, (None, None))
@@ -105,14 +103,6 @@ def _texto_requerido(datos: dict, campo: str) -> str:
     if not isinstance(valor, str) or not valor.strip():
         raise ParametroInvalido(campo, f"Falta el campo: {campo}.")
     return valor.strip()
-
-
-def _criterio_externo(nombre: str) -> str:
-    return "luz" if nombre == "iluminacion" else nombre
-
-
-def _criterio_interno(nombre: str) -> str:
-    return "iluminacion" if nombre == "iluminacion" else nombre
 
 
 def _error(codigo: str, mensaje: str, status: int = 400, detalle: dict | None = None):
