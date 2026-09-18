@@ -124,6 +124,5 @@ repositorios/          Transformacion de configuracion a entidades
 adaptadores/           Implementaciones CSV y JSON
 configuracion/         Tabla de rangos de referencia
 frontend/              Cliente web estatico
-static/                Recursos antiguos del frontend
 tests/                 Pruebas unitarias del dominio
 ```
