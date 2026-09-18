@@ -5,6 +5,7 @@ La aplicacion recibe especie, humedad, iluminacion y temperatura. Busca los rang
 
 2. ARQUITECTURA MVC
  Frontend: frontend/index.html, frontend/app.js y frontend/styles.css son archivos estaticos servidos por separado. La comunicacion se realiza con fetch y JSON, sin formularios HTML tradicionales.
+ Dominio: dominio/modelos.py contiene las entidades y DTO del dominio; dominio/criterios.py contiene las reglas de clasificacion; dominio/normalizacion.py mantiene la clave canonica de las especies; dominio/puertos.py declara las abstracciones.
 
 3. POR QUE LA SOLUCION CUMPLE SOLID
 La solucion aplica SOLID porque separa las responsabilidades, depende de contratos y permite extender el comportamiento sin modificar el codigo que ya funciona.

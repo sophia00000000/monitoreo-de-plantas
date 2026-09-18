@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 
 from dominio.puertos import FuenteConfiguracionPlantas
+from dominio.normalizacion import normalizar_especie
 
 
 class AdapterCsv(FuenteConfiguracionPlantas):
@@ -12,11 +13,12 @@ class AdapterCsv(FuenteConfiguracionPlantas):
         with self._ruta.open(encoding="utf-8") as archivo:
             plantas = {}
             for fila in csv.DictReader(archivo):
+                especie = normalizar_especie(fila["especie"])
                 planta = plantas.setdefault(
-                    fila["especie"],
+                    especie,
                     {
                         "nombre": fila["nombre"],
-                        "especie": fila["especie"],
+                        "especie": especie,
                         "criterios": [],
                     },
                 )

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from modelos import CriterioConfig
+from dominio.modelos import CriterioConfig
 
 
 class Criterio(ABC):

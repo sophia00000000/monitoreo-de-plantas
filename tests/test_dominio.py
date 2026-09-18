@@ -1,9 +1,9 @@
 import unittest
 
-from modelos import CondicionesAmbientales
+from dominio.modelos import CondicionesAmbientales
 from dominio.puertos import FuenteConfiguracionPlantas
+from dominio.criterios import CriterioFactory, CriterioRango
 from repositorios.planta_repository import PlantaRepository
-from servicios.criterios import CriterioFactory, CriterioRango
 from servicios.evaluador import Evaluador
 
 
@@ -14,7 +14,7 @@ class AdaptadorEnMemoria(FuenteConfiguracionPlantas):
         return [
             {
                 "nombre": "Sansevieria de prueba",
-                "especie": "sansevieria",
+                "especie": "  SanSevieria  ",
                 "criterios": [
                     {"nombre": "humedad", "minimo": 30, "maximo": 60, "unidad": "%"},
                     {"nombre": "iluminacion", "minimo": 100, "maximo": 800, "unidad": "lux"},
@@ -92,6 +92,14 @@ class ReglasDeDominioTest(unittest.TestCase):
                 "especie_inexistente",
                 CondicionesAmbientales({"humedad": 40, "iluminacion": 300, "temperatura": 22}),
             )
+
+    def test_especie_se_guarda_y_se_busca_con_clave_normalizada(self):
+        resultado = self.evaluador.evaluar_planta(
+            "  SANSEVIERIA  ",
+            CondicionesAmbientales({"humedad": 40, "iluminacion": 300, "temperatura": 22}),
+        )
+
+        self.assertEqual(resultado.especie, "sansevieria")
 
 
 if __name__ == "__main__":

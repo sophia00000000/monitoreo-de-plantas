@@ -1,6 +1,6 @@
-from modelos import CondicionesAmbientales, ResultadoEvaluacion
+from dominio.modelos import CondicionesAmbientales, ResultadoEvaluacion
 from dominio.puertos import RepositorioPlantas
-from servicios.criterios import CriterioFactory
+from dominio.criterios import CriterioFactory
 
 
 class Evaluador:

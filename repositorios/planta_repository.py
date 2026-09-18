@@ -1,5 +1,6 @@
 from dominio.puertos import FuenteConfiguracionPlantas
-from modelos import CriterioConfig, Planta
+from dominio.modelos import CriterioConfig, Planta
+from dominio.normalizacion import normalizar_especie
 
 
 class PlantaRepository:
@@ -20,12 +21,13 @@ class PlantaRepository:
                 )
                 for criterio in datos["criterios"]
             }
-            planta = Planta(datos["nombre"], datos["especie"], criterios)
-            plantas[planta.especie] = planta
+            especie = normalizar_especie(datos["especie"])
+            planta = Planta(datos["nombre"], especie, criterios)
+            plantas[especie] = planta
         return plantas
 
     def obtener_por_especie(self, especie: str) -> Planta | None:
-        return self._plantas.get(especie.strip().lower())
+        return self._plantas.get(normalizar_especie(especie))
 
     def listar_especies(self) -> list[str]:
         return list(self._plantas.keys())

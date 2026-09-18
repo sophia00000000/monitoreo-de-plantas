@@ -2,7 +2,7 @@ from math import isfinite
 
 from flask import Blueprint, jsonify, request
 
-from modelos import CondicionesAmbientales
+from dominio.modelos import CondicionesAmbientales
 from servicios.evaluador import Evaluador
 
 

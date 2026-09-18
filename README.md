@@ -118,8 +118,8 @@ La tabla de referencia se encuentra en [configuracion/plantas.csv](configuracion
 app.py                 Composicion del backend
 Main.py                Punto de entrada del servidor Flask
 controladores/         Endpoints REST y validacion HTTP
-servicios/             Casos de uso y reglas de evaluacion
-dominio/               Puertos y abstracciones del dominio
+servicios/             Casos de uso de aplicacion
+dominio/               Modelos, reglas, normalizacion y puertos
 repositorios/          Transformacion de configuracion a entidades
 adaptadores/           Implementaciones CSV y JSON
 configuracion/         Tabla de rangos de referencia

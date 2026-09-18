@@ -5,7 +5,7 @@ from pathlib import Path
 from adaptadores.adapter_csv import AdapterCsv
 from controladores.planta_controller import crear_blueprint
 from repositorios.planta_repository import PlantaRepository
-from servicios.criterios import CriterioFactory
+from dominio.criterios import CriterioFactory
 from servicios.evaluador import Evaluador
 
 
