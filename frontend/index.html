@@ -15,6 +15,7 @@
         <button data-vista="plantas">Mis plantas</button>
         <button data-vista="solicitudes" class="solo-sesion">Solicitar especie</button>
         <button data-vista="admin" class="solo-admin">Administracion</button>
+        <button data-vista="acceso" class="solo-anonimo">Iniciar sesion / Registrarse</button>
     </nav>
     <div id="sesion" class="sesion"></div>
 </header>
@@ -24,6 +25,11 @@
 
     <!-- RF7: diagnostico sin iniciar sesion, no se persiste -->
     <section id="vista-diagnostico" class="vista">
+        <div class="invitacion-acceso solo-anonimo">
+            <p><strong>¿Quieres registrar tus plantas y ver sus lecturas en vivo?</strong>
+                Inicia sesion o crea una cuenta.</p>
+            <button type="button" data-ir="acceso">Iniciar sesion</button>
+        </div>
         <p class="eyebrow">Sin iniciar sesion · no se guarda</p>
         <h1>Diagnostico rapido</h1>
         <form id="form-diagnostico" class="panel campos">
@@ -41,6 +47,8 @@
     <!-- RF8, RF9: registro e inicio de sesion -->
     <section id="vista-acceso" class="vista oculto">
         <h1>Entra a tu matera</h1>
+        <p class="ayuda">Si ya tienes cuenta usa el formulario de la izquierda; si no, crea una a la derecha.
+            El administrador inicial es el definido en MATERA_ADMIN_USUARIO / MATERA_ADMIN_PASSWORD.</p>
         <div class="dos-columnas">
             <form id="form-login" class="panel pila">
                 <h2>Iniciar sesion</h2>

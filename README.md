@@ -40,6 +40,119 @@ Los secretos se leen del entorno, nunca del código (RA23).
 | `MATERA_SSL_CERT` / `MATERA_SSL_KEY` | — | Certificado y llave: activan HTTPS y WSS (RA23). |
 | `MATERA_HOST` / `MATERA_PUERTO` | `127.0.0.1` / `5000` | Dirección del servidor. |
 
+## Paso a paso (demo completa)
+
+Se usan tres terminales de PowerShell, todas abiertas en la raíz del proyecto y con el entorno
+virtual activado (`.\.venv\Scripts\Activate.ps1`).
+
+### Paso 1 — Instalar dependencias (solo la primera vez)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+### Paso 2 — Arrancar el backend (terminal 1)
+
+```powershell
+$env:MATERA_JWT_SECRETO = "una-clave-larga-y-secreta-para-firmar-jwt"
+$env:MATERA_ADMIN_USUARIO = "admin"
+$env:MATERA_ADMIN_EMAIL = "admin@matera.co"
+$env:MATERA_ADMIN_PASSWORD = "admin12345"
+python Main.py
+```
+
+Debe aparecer `Running on http://127.0.0.1:5000`. Al primer arranque se crean la base
+`datos/matera.db` y la cuenta de administrador `admin` / `admin12345`.
+
+### Paso 3 — Arrancar el front (terminal 2)
+
+```powershell
+python -m http.server 5500 --directory frontend
+```
+
+Abra `http://127.0.0.1:5500/` en el navegador.
+
+### Paso 4 — Crear una cuenta e iniciar sesión
+
+**Desde el front:** pulse **Iniciar sesion** (botón verde arriba a la derecha, la pestaña
+**Iniciar sesion / Registrarse** o el aviso verde de la pantalla inicial). Se abre una pantalla con
+dos formularios: *Iniciar sesion* a la izquierda y *Crear cuenta* a la derecha.
+
+- *Crear cuenta*: usuario `ana`, correo `ana@correo.com`, contraseña `clave1234`. La sesión se
+  inicia sola al registrarse.
+- *Iniciar sesión*: usuario (o correo) y contraseña. Ejemplos:
+  - usuaria normal: `ana` / `clave1234`
+  - administrador: `admin` / `admin12345` (ve además la pestaña **Administración**)
+
+**Desde PowerShell (opcional, para probar la API sin el front):**
+
+```powershell
+$api = "http://127.0.0.1:5000/api/v1"
+
+# Registro
+Invoke-RestMethod -Method Post -Uri "$api/auth/registro" -ContentType "application/json" `
+  -Body '{"nombre": "ana", "email": "ana@correo.com", "password": "clave1234"}'
+
+# Inicio de sesión: devuelve {"token": "...", "usuario": {...}}
+$login = Invoke-RestMethod -Method Post -Uri "$api/auth/login" -ContentType "application/json" `
+  -Body '{"usuario": "ana", "password": "clave1234"}'
+$cabeceras = @{ Authorization = "Bearer $($login.token)" }
+
+# Usar el JWT: crear y listar plantas
+Invoke-RestMethod -Method Post -Uri "$api/plantas" -Headers $cabeceras -ContentType "application/json" `
+  -Body '{"apodo": "Mi sansevieria", "especie": "sansevieria"}'
+Invoke-RestMethod -Uri "$api/plantas" -Headers $cabeceras
+```
+
+El mismo inicio de sesión con `curl` (Git Bash):
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "ana", "password": "clave1234"}'
+```
+
+Si la contraseña es incorrecta o el usuario no existe, la respuesta es la misma en ambos casos:
+`401 {"error": "CREDENCIALES_INVALIDAS", "mensaje": "Usuario o contrasena incorrectos."}` (RA24).
+
+### Paso 5 — Crear una planta
+
+En **Mis plantas**, formulario *Nueva planta*: apodo `Mi sansevieria`, especie *Lengua de suegra*.
+Haga clic en la tarjeta de la planta para abrir su detalle.
+
+### Paso 6 — Encender el simulador (terminal 3)
+
+```powershell
+python simulador_esp32.py --mac AA:BB:CC:DD:EE:01 --especie sansevieria --intervalo 5
+```
+
+Queda esperando con el mensaje `emparejando  MAC AA:BB:CC:DD:EE:01 lista hasta ...` (tiene 10 minutos).
+
+### Paso 7 — Vincular el dispositivo
+
+En el detalle de la planta, sección **Dispositivo**, escriba `AA:BB:CC:DD:EE:01` y pulse
+**Vincular**. El simulador muestra `token recibido` y empieza a enviar lecturas. En el front, el
+estado de la planta y el historial se actualizan solos (indicador **en vivo**).
+
+### Paso 8 — Probar el resto de la demo
+
+- **Planta ajena (debe fallar):** cierre sesión, cree otra cuenta (`beto` / `clave1234`) y pida la
+  planta de `ana`. Por API:
+  ```powershell
+  $beto = Invoke-RestMethod -Method Post -Uri "$api/auth/login" -ContentType "application/json" `
+    -Body '{"usuario": "beto", "password": "clave1234"}'
+  Invoke-RestMethod -Uri "$api/plantas/1" -Headers @{ Authorization = "Bearer $($beto.token)" }
+  # -> 404 RECURSO_NO_ENCONTRADO
+  ```
+- **Compartir:** como `ana`, en el detalle pulse **Generar invitación**. Con la sesión de `beto`,
+  pegue el código en *Adoptar planta* (o abra el enlace del QR): `beto` queda como cuidador.
+- **Cambiar de CSV a BD:** detenga el backend (Ctrl+C), ejecute
+  `$env:MATERA_FUENTE_ESPECIES = "sqlite"` y vuelva a correr `python Main.py`.
+- **Desvincular:** en el detalle, **Desvincular dispositivo**. El simulador recibe el rechazo,
+  borra su token y termina.
+
 ## 1. Ejecutar el backend
 
 ```powershell

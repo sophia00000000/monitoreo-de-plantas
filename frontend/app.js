@@ -102,7 +102,7 @@ function pintarSesion() {
     document.body.classList.toggle("es-admin", usuario?.rol === "ADMIN");
     $("#sesion").innerHTML = usuario
         ? `<span>${esc(usuario.nombre)} <small>${esc(usuario.rol)}</small></span><button id="salir" class="secundario">Salir</button>`
-        : `<button id="entrar" class="secundario">Entrar</button>`;
+        : `<button id="entrar">Iniciar sesion</button>`;
     $("#salir")?.addEventListener("click", cerrarSesion);
     $("#entrar")?.addEventListener("click", () => mostrarVista("acceso"));
 }
@@ -655,6 +655,8 @@ function canjearPendiente() {
 
 document.querySelectorAll("#pestanas button").forEach((b) =>
     b.addEventListener("click", () => mostrarVista(b.dataset.vista)));
+document.querySelectorAll("[data-ir]").forEach((b) =>
+    b.addEventListener("click", () => mostrarVista(b.dataset.ir)));
 
 capturarInvitacionDeUrl();
 pintarSesion();

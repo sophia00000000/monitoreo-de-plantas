@@ -17,6 +17,9 @@ nav button.activa { background: var(--ink); color: white; }
 .sesion small { font: .7rem 'Space Mono', monospace; color: var(--leaf); }
 .solo-sesion, .solo-admin { display: none; }
 body.con-sesion .solo-sesion, body.es-admin .solo-admin { display: inline-block; }
+body.con-sesion .solo-anonimo { display: none !important; }
+.invitacion-acceso { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 16px 20px; margin-bottom: 28px; border: 1px solid var(--leaf); background: var(--mint); }
+.invitacion-acceso p { margin: 0; }
 
 .contenedor { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 80px; }
 .oculto { display: none !important; }
