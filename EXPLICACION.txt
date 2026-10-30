@@ -1,101 +1,179 @@
-EVALUADOR DE PLANTAS - EXPLICACION DEL DISENO
+MATERA - FASE 2: CÓMO FUNCIONA LA ARQUITECTURA
+==============================================
 
-1. OBJETIVO
-La aplicacion recibe especie, humedad, iluminacion y temperatura. Busca los rangos propios de la especie y clasifica cada criterio como BAJO, OPTIMO o ALTO. El indice de vitalidad resume el estado de la planta.
+Documento de apoyo del repositorio. Para ejecutar el sistema ver README.md.
 
-2. ARQUITECTURA MVC
- Frontend: frontend/index.html, frontend/app.js y frontend/styles.css son archivos estaticos servidos por separado. La comunicacion se realiza con fetch y JSON, sin formularios HTML tradicionales.
- Dominio: dominio/modelos.py contiene las entidades y DTO del dominio; dominio/criterios.py contiene las reglas de clasificacion; dominio/normalizacion.py mantiene la clave canonica de las especies; dominio/puertos.py declara las abstracciones.
 
-3. POR QUE LA SOLUCION CUMPLE SOLID
-La solucion aplica SOLID porque separa las responsabilidades, depende de contratos y permite extender el comportamiento sin modificar el codigo que ya funciona.
+1. QUÉ HACE EL SISTEMA
+----------------------
+Un ESP32 (o simulador_esp32.py) mide humedad, luz y temperatura de una planta y las envía al
+backend. El backend compara cada valor con los rangos de la especie (BAJO / OPTIMO / ALTO),
+calcula el estado global (SALUDABLE / EN_RIESGO / CRITICO), guarda la lectura en el historial y
+avisa al navegador en tiempo real. Los usuarios tienen cuenta, plantas propias o compartidas, y
+un administrador gestiona especies y cuentas.
 
-S - Single Responsibility / Responsabilidad unica
-Cada clase tiene una razon concreta para cambiar. Por ejemplo, cambiar JSON por CSV afecta al adaptador, no al evaluador.
 
-O - Open/Closed / Abierto y cerrado
-El sistema esta abierto para extension y cerrado para modificacion:
-No es necesario modificar el controlador ni el algoritmo principal de evaluacion.
+2. LA ARQUITECTURA EN TÉRMINOS GENERALES (HEXAGONAL / PUERTOS Y ADAPTADORES)
+----------------------------------------------------------------------------
+El código está dividido en tres zonas:
 
-L - Liskov Substitution / Sustitucion de Liskov
-Las clases CriterioHumedad, CriterioLuz y CriterioTemp son sustituibles por cualquier otra clase que implemente Criterio. Todas ofrecen el mismo metodo evaluar(valor) y devuelven el mismo contrato: BAJO, OPTIMO o ALTO.
-De la misma forma, AdapterJson puede sustituirse por otro adaptador compatible, como AdapterCsv, sin cambiar PlantaRepository. Ambos implementan `FuenteConfiguracionPlantas`, declarada en `dominio/puertos.py`.
+  matera/dominio/         El núcleo. Reglas de negocio puras: modelo (Especie, Lectura,
+                          Diagnostico, Planta, Dispositivo...), validador.py (Evaluador,
+                          criterios, regla de agregación), politica_propiedad.py y los casos de
+                          uso en servicios/. No importa Flask, SQL, CSV, JSON, JWT ni bcrypt.
+                          tests/test_arquitectura.py lo comprueba automáticamente.
 
-I - Interface Segregation / Segregacion de interfaces
-Las interfaces son pequenas y especificas:
-Una clase que lea datos no tiene que implementar metodos de evaluacion, y un criterio no tiene que conocer Flask, archivos ni HTTP. Esto evita interfaces grandes con metodos innecesarios.
+  matera/dominio/puertos/ Las interfaces que el dominio declara.
+                          - entrada.py: lo que el sistema ofrece (DiagnosticarPort,
+                            RegistrarLecturaPort, VincularDispositivoPort...).
+                          - salida.py: lo que el sistema necesita del exterior
+                            (ConsultarRangosPort, HistorialLecturasPort, EmisorJwtPort,
+                            GeneradorTokenPort, RelojPort, AuditoriaPort...).
 
-D - Dependency Inversion / Inversion de dependencias
-Las reglas de negocio no crean directamente sus dependencias. app.py las ensambla y las inyecta:
-El evaluador trabaja con el repositorio y la fabrica, no con el archivo JSON ni con Flask. Por eso se puede probar con un adaptador falso en memoria y se puede cambiar el origen de datos sin cambiar la logica de negocio.
+  matera/adaptadores/     La tecnología, siempre afuera.
+                          - entrada/: traducen un estímulo externo a una llamada de puerto
+                            (controladores REST de Flask, WebSocket del dispositivo,
+                            WebSocket del front).
+                          - salida/: implementan los puertos de salida con una tecnología
+                            concreta (CSV, JSON, SQLite, bcrypt, PyJWT, WebSocket).
 
-CONCLUSION SOLID
-Si manana se agrega la planta "mediterranea", se modifica solo el JSON. Si se agrega el criterio "ph_suelo", se agrega su configuracion, una implementacion CriterioPhSuelo y su registro en la fabrica. El controlador, la vista y Evaluador permanecen reutilizables.
+Las dependencias siempre apuntan hacia adentro: los adaptadores conocen los puertos, el dominio
+nunca conoce a los adaptadores.
 
-4. API REST
-GET /api/plantas
-Respuesta: {"plantas": [{"especie": "sansevieria", "criterios": [{"nombre": "humedad", "unidad": "%"}, {"nombre": "iluminacion", "unidad": "lux"}, {"nombre": "temperatura", "unidad": "C"}]}]}
+Todo se conecta en un único punto de composición: create_app() en matera/app.py. Ahí, y solo ahí,
+se decide qué adaptador va en cada puerto. Por ejemplo, la tabla de referencia se elige con la
+variable MATERA_FUENTE_ESPECIES (csv, json o sqlite) sin cambiar código.
 
-POST /api/evaluar
-Content-Type: application/json
-Ejemplo de cuerpo:
-{"especie":"sansevieria","humedad":40,"iluminacion":300,"temperatura":22}
+Recorrido de una lectura del dispositivo:
 
-Unidades de entrada: `humedad` se expresa en porcentaje (%), `iluminacion` en lux y `temperatura` en grados Celsius (C). Los tres campos deben existir y contener valores numericos.
+  ESP32 --WS--> WsDispositivoAdapter
+                  | convierte el JSON en un objeto Lectura (el dominio nunca recibe un dict crudo)
+                  v
+          AutenticarDispositivoPort  (AutenticacionDispositivoService: MAC + token -> DispositivoId)
+                  v
+          RegistrarLecturaPort       (RegistrarLecturaService)
+                  |-- DiagnosticarPort        -> Evaluador -> ConsultarRangosPort (CSV/JSON/SQLite)
+                  |-- HistorialLecturasPort   -> RepoLecturas (SQLite)
+                  '-- NotificadorEstadoPort   -> WsNotificador --WS--> navegador
 
-La respuesta contiene la planta, `especie`, `indice_vitalidad`, cada criterio con valor recibido, unidad, minimo, maximo y estado, y una recomendacion por cada parametro fuera de rango.
+Agregar el canal del dispositivo y el simulador no requirió tocar el dominio: son un adaptador de
+entrada nuevo (api_dispositivos.py) y un adaptador de salida nuevo (ws_notificador_dispositivo.py).
+Si mañana las lecturas llegaran por MQTT, se agregaría otro adaptador de entrada y se conectaría en
+app.py; el dominio seguiría igual.
 
-Cada criterio se clasifica como `BAJO`, `OPTIMO` o `ALTO`. El indice de vitalidad es `SALUDABLE` cuando todos los parametros son optimos, `EN_RIESGO` cuando uno esta fuera de rango y `CRITICO` cuando dos o mas estan fuera de rango.
 
-5. COMO EJECUTAR EN WINDOWS POWERSHELL
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python Main.py
+3. CREDENCIALES: QUÉ TECNOLOGÍA SE USA Y DÓNDE VIVE CADA UNA
+-------------------------------------------------------------
+Principio general: la criptografía es tecnología, así que vive en los adaptadores. El dominio solo
+recibe identidades ya verificadas (Identidad con usuario_id y rol, o un DispositivoId) y decide los
+permisos. Nunca ve un token ni una cabecera HTTP.
 
-En una segunda terminal, desde la raiz del proyecto, servir el frontend estatico:
-`python -m http.server 5500 --directory frontend`
-Despues abrir http://127.0.0.1:5500/
+3.1 Contraseñas de usuario - bcrypt
+  - Librería: bcrypt (adaptador BcryptHasher en adaptadores/salida/seguridad.py), detrás del
+    puerto HasherPasswordPort.
+  - Hash adaptativo con costo 12 (cada verificación es deliberadamente lenta para frenar ataques
+    de fuerza bruta) y sal aleatoria incluida en el propio hash.
+  - Antes de bcrypt la contraseña pasa por SHA-256 + base64, porque bcrypt solo usa los primeros
+    72 bytes; así contraseñas largas no se truncan.
+  - En la base se guarda solo usuario.password_hash, nunca la contraseña.
+  - Si el usuario no existe, AutenticacionService igual verifica contra un hash señuelo, para que el
+    tiempo de respuesta no revele qué usuarios existen. El mensaje de error es siempre el mismo.
 
-Si PowerShell bloquea la activacion, se puede ejecutar directamente:
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe Main.py
+3.2 Sesión de usuario - JWT firmado (PyJWT, HS256)
+  - Emisión: AutenticacionService valida la contraseña y pide la firma a EmisorJwtPort, implementado
+    por JwtAdapter (seguridad.py) con la librería PyJWT.
+  - Contenido: sub (id del usuario), rol (USUARIO o ADMIN), iat (emitido) y exp (vence a los 60
+    minutos, configurable con MATERA_JWT_MINUTOS).
+  - Firma HMAC-SHA256 con la clave MATERA_JWT_SECRETO, leída de una variable de entorno, nunca
+    escrita en el código.
+  - Verificación: JwtVerificador (adaptadores/entrada/http/jwt_verificador.py) es un decorador de
+    Flask. Lee "Authorization: Bearer <jwt>", comprueba firma, vencimiento y campos obligatorios, y
+    entrega al caso de uso solo Identidad(usuario_id, rol). Si falla responde 401.
+  - El emisor (salida) y el verificador (entrada) reciben la misma clave en create_app().
+  - En el WebSocket del front el JWT viaja en el primer mensaje, no en la URL, para que no quede
+    escrito en los logs del servidor.
 
-6. EXTENSIONES
-Para agregar una planta, edita configuracion/plantas.csv y agrega sus filas. No se modifica el evaluador, controlador ni el frontend.
+3.3 Dispositivo - token opaco de 256 bits
+  - Generación: TokenOpacoGenerator (seguridad.py), detrás de GeneradorTokenPort, usa el módulo
+    secrets de Python (generador criptográficamente seguro): 32 bytes aleatorios = 256 bits.
+  - Almacenamiento: solo su hash SHA-256 en dispositivo.token_hash. Si alguien roba la base de
+    datos no obtiene tokens utilizables.
+  - Comparación: hmac.compare_digest, que tarda lo mismo acierte o no (evita ataques por tiempo).
+  - Entrega única: al vincular, VincularDispositivoService genera el token y lo entrega por la
+    conexión WebSocket abierta del dispositivo (WsNotificadorDispositivo). El dispositivo debe
+    confirmar con "token_recibido" en 10 segundos; si no, la vinculación se revierte.
+  - Uso: el dispositivo se autentica con MAC + token, por WebSocket (mensaje "autenticar") o por
+    HTTP ("Authorization: Bearer <token>" en POST /api/v1/dispositivos/<mac>/lecturas).
+  - Alcance: solo sirve para reportar lecturas de la planta vinculada; no da acceso a ninguna otra
+    operación de la API.
+  - Revocación: al desvincular el dispositivo o eliminar la planta, el estado pasa a REVOCADO y el
+    hash se borra; el token deja de funcionar de inmediato.
 
-Para agregar un criterio, agrega su nombre y rango en el JSON, crea una clase que implemente Criterio y registra el nombre en CriterioFactory. El evaluador y la vista ya trabajan con colecciones dinamicas.
+3.4 MAC - identificador, no credencial
+  - Solo identifica al dispositivo (se normaliza a AA:BB:CC:DD:EE:FF). Nunca basta para
+    autenticarse.
+  - Para emparejar, el dispositivo anuncia su MAC y abre una ventana de 10 minutos, con una sola
+    conexión por MAC.
 
-7. DESCRIPCION COMPLETA DE LA ARQUITECTURA
-La aplicacion utiliza una arquitectura por capas con MVC. Cada capa tiene una funcion delimitada y se comunica con la siguiente mediante datos y contratos definidos.
+3.5 Invitación por QR - token opaco de un solo uso
+  - Mismo generador de 256 bits; en invitacion.token_hash se guarda solo el hash, con su fecha de
+    expiración (24 h por defecto) y su estado.
+  - El backend devuelve el token en JSON; el QR lo dibuja el front con la librería qrcodejs.
+  - El canje es atómico: en una transacción SQLite (BEGIN IMMEDIATE) se marca la invitación como
+    CONSUMIDA solo si sigue PENDIENTE y vigente, y en la misma transacción se crea el vínculo
+    CUIDADOR. Dos personas no pueden canjear el mismo código.
 
-Flujo principal de una evaluacion:
-1. El usuario selecciona la especie e introduce los valores ambientales en el frontend.
-2. La vista envia una peticion asincrona fetch con metodo POST y cuerpo JSON.
-3. El controlador recibe la peticion REST en /api/evaluar.
-4. El controlador valida que exista un JSON y convierte los valores a numeros.
-5. El servicio Evaluador solicita al repositorio la planta correspondiente.
-6. El repositorio obtiene las plantas que fueron cargadas por AdapterCsv desde configuracion/plantas.csv.
-7. Evaluador solicita a CriterioFactory una regla para cada criterio configurado.
-8. Cada Criterio compara el valor recibido con minimo y maximo.
-9. Evaluador construye ResultadoEvaluacion y calcula el estado general.
-10. El controlador serializa el resultado a JSON y lo devuelve a la vista.
+3.6 Protecciones alrededor de las credenciales
+  - Límite de intentos: LimitadorIntentos, 10 intentos por minuto por IP en login, registro,
+    vinculación, canje y autenticación de dispositivos. Al pasarse responde 429.
+  - Respuestas uniformes: login, vinculación y canje no revelan si un usuario, una MAC o un código
+    existen.
+  - Auditoría: SqliteAuditoria registra emparejamientos, vinculaciones, desvinculaciones, canjes,
+    intentos fallidos y accesos del admin a plantas ajenas. Nunca guarda tokens.
+  - Cifrado: con MATERA_SSL_CERT y MATERA_SSL_KEY el servidor usa HTTPS y WSS.
+  - CORS (flask-cors): solo los orígenes de MATERA_CORS_ORIGENES pueden llamar a la API.
 
-Capas y responsabilidades:
+Resumen:
 
-8. RESTRICCIONES FUNCIONALES
+  Credencial             Tecnología                 Se emite en                 Se verifica en
+  ---------------------  -------------------------  --------------------------  ------------------------------
+  Contraseña             bcrypt (costo 12)          registro (BcryptHasher)     AutenticacionService
+  JWT de usuario         PyJWT, HS256, exp 60 min   JwtAdapter                  JwtVerificador (borde HTTP/WS)
+  Token de dispositivo   secrets 256 bits + SHA-256 VincularDispositivoService  AutenticacionDispositivoService
+  Token de invitación    secrets 256 bits + SHA-256 CompartirPlantaService      CompartirPlantaService
+  MAC                    ninguna (identificador)    el propio dispositivo       no se verifica sola
+  Permiso sobre planta   regla de negocio           -                           PoliticaPropiedad (dominio)
 
-9. RESTRICCIONES ARQUITECTONICAS
 
-10. RESTRICCIONES DE LA API REST
+4. POR QUÉ ES SOLID
+-------------------
+S - Responsabilidad única
+  Cada clase tiene una sola razón para cambiar. Los controladores solo traducen HTTP o WebSocket a
+  llamadas de puerto y errores de dominio a códigos HTTP; no contienen reglas. El Evaluador solo
+  diagnostica, RegistrarLecturaService solo registra y notifica, PoliticaPropiedad solo decide
+  permisos. Cambiar bcrypt por argon2 toca únicamente BcryptHasher.
 
-11. RESTRICCIONES DE EXTENSIBILIDAD
-Agregar una planta no requiere cambiar codigo: se agrega su configuracion al JSON con sus rangos.
-Agregar un nuevo formato de datos requiere crear otro adaptador que implemente Adapter. El repositorio y Evaluador no cambian.
-Agregar un nuevo criterio requiere crear una clase que implemente Criterio y registrarla en CriterioFactory. Esto mantiene la regla aislada y evita modificar Evaluador.
-Si un nuevo criterio necesita una unidad distinta, esa unidad debe incluirse en la configuracion y presentarse en la vista sin trasladar la regla al controlador.
+O - Abierto/cerrado
+  El sistema crece agregando clases, no modificando las existentes. El canal WebSocket del
+  dispositivo y el simulador se añadieron como adaptadores sin tocar el dominio. Pasar de CSV a
+  SQLite es elegir otro adaptador de ConsultarRangosPort por configuración. Un nuevo parámetro
+  (por ejemplo pH) se agrega registrando su criterio en CriterioFactory y su rango físico en
+  PARAMETROS; el algoritmo del Evaluador no cambia.
 
-12. LIMITES ACTUALES Y DECISIONES
+L - Sustitución de Liskov
+  Cualquier implementación de un puerto reemplaza a otra sin que el dominio lo note: AdapterCsv,
+  AdapterJson y SqliteEspecies son intercambiables como ConsultarRangosPort, y en las pruebas los
+  dobles en memoria (tests/dobles.py) sustituyen a SQLite, bcrypt, JWT y al reloj.
 
-13. JUSTIFICACION DE LAS RESTRICCIONES
-Estas restricciones evitan que la logica de negocio quede mezclada con la interfaz, el protocolo HTTP o el formato de almacenamiento. Tambien garantizan que la fuente de configuracion sea unica, que los cambios tengan un impacto pequeno y que la aplicacion pueda evolucionar hacia CSV, base de datos, nuevos criterios o nuevas plantas sin rehacer el caso de uso central.
+I - Segregación de interfaces
+  Puertos pequeños y con nombre de negocio. La lectura de rangos (ConsultarRangosPort, que usa el
+  Evaluador) está separada de la gestión de especies (RepositorioEspeciesPort, que usa el admin):
+  el Evaluador no depende de métodos de escritura que no necesita. Igual ocurre con
+  HasherPasswordPort, EmisorJwtPort y GeneradorTokenPort, cada uno con una sola tarea.
+
+D - Inversión de dependencias
+  Es el principio central de la hexagonal. El dominio declara los puertos y la infraestructura los
+  implementa. Los servicios reciben sus dependencias por constructor y nunca las crean;
+  create_app() instancia los adaptadores y los inyecta. Por eso el dominio se prueba sin servidor,
+  sin archivos y sin base de datos, y la seguridad (JWT, bcrypt, tokens) puede cambiar sin tocar
+  las reglas de negocio.

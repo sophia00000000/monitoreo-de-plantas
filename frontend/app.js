@@ -1,5 +1,7 @@
 // Cliente web de la matera: consume la API JSON con fetch y recibe el estado en vivo por WebSocket.
-const API_BASE = window.MATERA_API || "http://127.0.0.1:5000";
+// La API vive en el mismo equipo que sirve el front, en el puerto 5000. Usar location.hostname
+// permite abrir el front desde otro dispositivo de la red (p. ej. el telefono que escanea el QR).
+const API_BASE = window.MATERA_API || `${location.protocol}//${location.hostname}:5000`;
 const API = `${API_BASE}/api/v1`;
 const WS_URL = API_BASE.replace(/^http/, "ws") + "/ws/front";
 const CONSULTA_PERIODICA_MS = 15000;

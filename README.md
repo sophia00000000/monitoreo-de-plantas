@@ -153,6 +153,60 @@ estado de la planta y el historial se actualizan solos (indicador **en vivo**).
 - **Desvincular:** en el detalle, **Desvincular dispositivo**. El simulador recibe el rechazo,
   borra su token y termina.
 
+### Paso 9 — Adoptar una planta escaneando el QR con el teléfono
+
+El PC y el teléfono deben estar en la misma red. Las redes universitarias suelen bloquear el tráfico
+entre dispositivos, así que lo más seguro es **conectar el PC al hotspot del teléfono**.
+
+1. **IP del PC.** Ejecute `ipconfig` y copie la *Dirección IPv4* del adaptador **Wi-Fi**. En los
+   ejemplos se usa `172.20.10.3` (la que asigna el hotspot de un iPhone); reemplácela por la suya.
+
+2. **Firewall** (una sola vez, en PowerShell **como administrador**). Con la red marcada como
+   *Pública*, Windows bloquea las conexiones entrantes:
+   ```powershell
+   New-NetFirewallRule -DisplayName "Matera dev" -Direction Inbound -Protocol TCP -LocalPort 5000,5500 -Action Allow -Profile Any
+   ```
+   Para quitarla al terminar: `Remove-NetFirewallRule -DisplayName "Matera dev"`.
+
+3. **Backend escuchando en la red** (terminal 1; detenga antes el anterior con Ctrl+C). Además de
+   las variables del paso 2:
+   ```powershell
+   $env:MATERA_HOST = "0.0.0.0"
+   $env:MATERA_CORS_ORIGENES = "http://172.20.10.3:5500,http://127.0.0.1:5500"
+   python Main.py
+   ```
+   `MATERA_CORS_ORIGENES` debe incluir la dirección exacta con la que se abre el front; si no, el
+   navegador bloquea las llamadas a la API (CORS) y la página carga sin especies ni login.
+
+4. **Front escuchando en la red** (terminal 2; Ctrl+C al anterior):
+   ```powershell
+   python -m http.server 5500 --bind 0.0.0.0 --directory frontend
+   ```
+
+5. **En el PC**, abra `http://172.20.10.3:5500/` (con la IP, **no** con `127.0.0.1`: el QR guarda
+   la dirección con la que se abrió la página) y recargue con **Ctrl+F5**. Inicie sesión como
+   propietario (`ana`), abra la planta y pulse **Generar invitacion**.
+
+6. **En el teléfono**, escanee el QR con la cámara. Se abre el front con la invitación guardada.
+   Inicie sesión con **otra cuenta** (por ejemplo `beto` / `clave1234`, o cree una). El código
+   aparece en *Adoptar planta*: pulse **Canjear**. La planta queda en *Mis plantas* del teléfono
+   como **CUIDADOR**. Un segundo intento con el mismo QR responde que la invitación ya no está
+   disponible (un solo uso, RA20).
+
+Si la IP del PC cambia (por ejemplo, al reconectarse al hotspot), actualice `MATERA_CORS_ORIGENES`,
+reinicie el backend y vuelva a abrir la página con la IP nueva.
+
+### Problemas comunes
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| `ERROR: ya hay un servidor escuchando en 127.0.0.1:5000` | Hay otro backend abierto (en Windows dos procesos pueden compartir el puerto y repartirse las peticiones) | Cierre el otro con Ctrl+C o use `$env:MATERA_PUERTO` |
+| Los botones no responden o la lista de especies sale vacía | El backend no está corriendo, o hay dos copias | Revise la terminal 1; deje una sola instancia |
+| En el teléfono la página **no carga** | Red o firewall | Compruebe la IP, la regla de firewall y pruebe `http://172.20.10.3:5500/` en el navegador del teléfono |
+| En el teléfono la página carga pero **sin especies ni login** | CORS: el origen no está en `MATERA_CORS_ORIGENES` | Agregue `http://<IP>:5500` y reinicie el backend |
+| El QR abre `127.0.0.1` en el teléfono | La invitación se generó con el front abierto en `127.0.0.1` | Abra el front en el PC con su IP y genere otra invitación |
+| La página abierta con doble clic (`file://`) no funciona | El navegador bloquea las llamadas desde archivos locales | Sírvala con `python -m http.server` (paso 3) |
+
 ## 1. Ejecutar el backend
 
 ```powershell
