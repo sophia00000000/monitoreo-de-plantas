@@ -8,7 +8,6 @@ from repositorios.planta_repository import PlantaRepository
 from dominio.criterios import CriterioFactory
 from servicios.evaluador import Evaluador
 
-
 def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/api/*": {"origins": "http://127.0.0.1:5500"}})
