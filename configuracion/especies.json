@@ -1,0 +1,99 @@
+{
+  "especies": [
+    {
+      "nombre": "sansevieria",
+      "nombre_cientifico": "Lengua de suegra (Sansevieria trifasciata)",
+      "fuente": "https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light",
+      "rangos": {
+        "humedad": {
+          "minimo": 30.0,
+          "maximo": 60.0
+        },
+        "luz": {
+          "minimo": 100.0,
+          "maximo": 800.0
+        },
+        "temperatura": {
+          "minimo": 18.0,
+          "maximo": 35.0
+        }
+      }
+    },
+    {
+      "nombre": "aloe_vera",
+      "nombre_cientifico": "Aloe vera (Aloe barbadensis)",
+      "fuente": "https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis",
+      "rangos": {
+        "humedad": {
+          "minimo": 30.0,
+          "maximo": 60.0
+        },
+        "luz": {
+          "minimo": 1000.0,
+          "maximo": 5000.0
+        },
+        "temperatura": {
+          "minimo": 18.0,
+          "maximo": 27.0
+        }
+      }
+    },
+    {
+      "nombre": "ficus_elastica",
+      "nombre_cientifico": "Arbol del caucho (Ficus elastica)",
+      "fuente": "https://botanicaly.com/es/plant-care/ficus-elastica",
+      "rangos": {
+        "humedad": {
+          "minimo": 40.0,
+          "maximo": 70.0
+        },
+        "luz": {
+          "minimo": 500.0,
+          "maximo": 2000.0
+        },
+        "temperatura": {
+          "minimo": 18.0,
+          "maximo": 29.0
+        }
+      }
+    },
+    {
+      "nombre": "tradescantia_zebrina",
+      "nombre_cientifico": "Amor de hombre (Tradescantia zebrina)",
+      "fuente": "https://botanicaly.com/es/plant-care/tradescantia-zebrina",
+      "rangos": {
+        "humedad": {
+          "minimo": 50.0,
+          "maximo": 70.0
+        },
+        "luz": {
+          "minimo": 500.0,
+          "maximo": 2000.0
+        },
+        "temperatura": {
+          "minimo": 18.0,
+          "maximo": 27.0
+        }
+      }
+    },
+    {
+      "nombre": "potos",
+      "nombre_cientifico": "Potos (Epipremnum aureum)",
+      "fuente": "https://botanicaly.com/es/plant-care/epipremnum-aureum",
+      "rangos": {
+        "humedad": {
+          "minimo": 40.0,
+          "maximo": 70.0
+        },
+        "luz": {
+          "minimo": 100.0,
+          "maximo": 1000.0
+        },
+        "temperatura": {
+          "minimo": 18.0,
+          "maximo": 29.0
+        }
+      }
+    }
+  ]
+}

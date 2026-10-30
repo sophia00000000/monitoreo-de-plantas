@@ -1,0 +1,16 @@
+especie,nombre_cientifico,parametro,minimo,maximo,fuente
+sansevieria,Lengua de suegra (Sansevieria trifasciata),humedad,30,60,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light
+sansevieria,Lengua de suegra (Sansevieria trifasciata),luz,100,800,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light
+sansevieria,Lengua de suegra (Sansevieria trifasciata),temperatura,18,35,https://botanicaly.com/es/plant-care/sansevieria-trifasciata#light
+aloe_vera,Aloe vera (Aloe barbadensis),humedad,30,60,https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis
+aloe_vera,Aloe vera (Aloe barbadensis),luz,1000,5000,https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis
+aloe_vera,Aloe vera (Aloe barbadensis),temperatura,18,27,https://botanicaly.com/es/plant-care/aloe-vera-aloe-barbadensis
+ficus_elastica,Arbol del caucho (Ficus elastica),humedad,40,70,https://botanicaly.com/es/plant-care/ficus-elastica
+ficus_elastica,Arbol del caucho (Ficus elastica),luz,500,2000,https://botanicaly.com/es/plant-care/ficus-elastica
+ficus_elastica,Arbol del caucho (Ficus elastica),temperatura,18,29,https://botanicaly.com/es/plant-care/ficus-elastica
+tradescantia_zebrina,Amor de hombre (Tradescantia zebrina),humedad,50,70,https://botanicaly.com/es/plant-care/tradescantia-zebrina
+tradescantia_zebrina,Amor de hombre (Tradescantia zebrina),luz,500,2000,https://botanicaly.com/es/plant-care/tradescantia-zebrina
+tradescantia_zebrina,Amor de hombre (Tradescantia zebrina),temperatura,18,27,https://botanicaly.com/es/plant-care/tradescantia-zebrina
+potos,Potos (Epipremnum aureum),humedad,40,70,https://botanicaly.com/es/plant-care/epipremnum-aureum
+potos,Potos (Epipremnum aureum),luz,100,1000,https://botanicaly.com/es/plant-care/epipremnum-aureum
+potos,Potos (Epipremnum aureum),temperatura,18,29,https://botanicaly.com/es/plant-care/epipremnum-aureum

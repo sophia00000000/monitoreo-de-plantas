@@ -1,3 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
+datos/
+.simulador_tokens.json
+certs/

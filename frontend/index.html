@@ -3,29 +3,108 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Evaluador de plantas</title>
+    <title>Matera</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-    <main class="contenedor">
-        <section class="encabezado">
-            <p class="eyebrow">Arquitectura de software</p>
-            <h1>Evaluador de plantas</h1>
-            <p>Compara las condiciones ambientales con los criterios de cada especie.</p>
-        </section>
+<header class="barra">
+    <div class="marca">Matera<span>diagnostico de plantas</span></div>
+    <nav id="pestanas">
+        <button data-vista="diagnostico" class="activa">Diagnostico rapido</button>
+        <button data-vista="plantas">Mis plantas</button>
+        <button data-vista="solicitudes" class="solo-sesion">Solicitar especie</button>
+        <button data-vista="admin" class="solo-admin">Administracion</button>
+    </nav>
+    <div id="sesion" class="sesion"></div>
+</header>
 
-        <section class="panel">
-            <div class="campos">
-                <label>Especie
-                    <select id="especie" required></select>
-                </label>
-                <div id="criterios"></div>
-            </div>
-            <button id="evaluar" type="button">Evaluar planta</button>
-        </section>
+<main class="contenedor">
+    <div id="aviso" class="aviso oculto" role="status"></div>
 
-        <section id="resultado" class="resultado oculto" aria-live="polite"></section>
-    </main>
-    <script src="app.js"></script>
+    <!-- RF7: diagnostico sin iniciar sesion, no se persiste -->
+    <section id="vista-diagnostico" class="vista">
+        <p class="eyebrow">Sin iniciar sesion · no se guarda</p>
+        <h1>Diagnostico rapido</h1>
+        <form id="form-diagnostico" class="panel campos">
+            <label>Especie <select name="especie" class="select-especies" required></select></label>
+            <label>Humedad (%) <input name="humedad" type="number" step="0.1" value="40" required></label>
+            <label>Luz (lux) <input name="luz" type="number" step="1" value="300" required></label>
+            <label>Temperatura (C) <input name="temperatura" type="number" step="0.1" value="22" required></label>
+            <button type="submit">Diagnosticar</button>
+        </form>
+        <div id="resultado-diagnostico" aria-live="polite"></div>
+        <h2>Especies soportadas</h2>
+        <div id="catalogo" class="catalogo"></div>
+    </section>
+
+    <!-- RF8, RF9: registro e inicio de sesion -->
+    <section id="vista-acceso" class="vista oculto">
+        <h1>Entra a tu matera</h1>
+        <div class="dos-columnas">
+            <form id="form-login" class="panel pila">
+                <h2>Iniciar sesion</h2>
+                <label>Usuario o correo <input name="usuario" autocomplete="username" required></label>
+                <label>Contrasena <input name="password" type="password" autocomplete="current-password" required></label>
+                <button type="submit">Entrar</button>
+            </form>
+            <form id="form-registro" class="panel pila">
+                <h2>Crear cuenta</h2>
+                <label>Nombre de usuario <input name="nombre" autocomplete="username" required></label>
+                <label>Correo <input name="email" type="email" autocomplete="email" required></label>
+                <label>Contrasena (min. 8) <input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
+                <button type="submit">Registrarme</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- RF10, RF13, RF14, RF15, RF19 -->
+    <section id="vista-plantas" class="vista oculto">
+        <div class="titulo-fila">
+            <h1>Mis plantas</h1>
+            <span id="estado-tiempo-real" class="chip">sin conexion en vivo</span>
+        </div>
+        <div class="dos-columnas">
+            <form id="form-planta" class="panel pila">
+                <h2>Nueva planta</h2>
+                <label>Apodo <input name="apodo" maxlength="60" required></label>
+                <label>Especie <select name="especie" class="select-especies" required></select></label>
+                <button type="submit">Crear planta</button>
+            </form>
+            <form id="form-canje" class="panel pila">
+                <h2>Adoptar planta</h2>
+                <p class="ayuda">Pega el codigo de invitacion (o abre el enlace del QR) para cuidar la planta de otra persona.</p>
+                <label>Codigo de invitacion <input name="token" required></label>
+                <button type="submit">Canjear</button>
+            </form>
+        </div>
+        <div id="lista-plantas" class="tarjetas"></div>
+        <div id="detalle-planta"></div>
+    </section>
+
+    <!-- RF16 -->
+    <section id="vista-solicitudes" class="vista oculto">
+        <h1>Solicitar una especie</h1>
+        <form id="form-solicitud" class="panel pila angosto">
+            <label>Nombre de la especie <input name="nombre" required></label>
+            <label>Por que la necesitas <textarea name="justificacion" rows="3"></textarea></label>
+            <button type="submit">Enviar solicitud</button>
+        </form>
+        <h2>Mis solicitudes</h2>
+        <div id="mis-solicitudes"></div>
+    </section>
+
+    <!-- RF17, RF18 -->
+    <section id="vista-admin" class="vista oculto">
+        <h1>Administracion</h1>
+        <h2>Solicitudes pendientes</h2>
+        <div id="admin-solicitudes"></div>
+        <h2>Especies</h2>
+        <div id="admin-especies"></div>
+        <h2>Cuentas</h2>
+        <div id="admin-usuarios"></div>
+    </section>
+</main>
+<script src="app.js"></script>
 </body>
 </html>

@@ -1,2 +1,6 @@
 Flask>=3.0,<4.0
 Flask-Cors>=4.0,<7.0
+flask-sock>=0.7,<1.0
+simple-websocket>=1.0,<2.0
+PyJWT>=2.8,<3.0
+bcrypt>=4.1,<6.0
