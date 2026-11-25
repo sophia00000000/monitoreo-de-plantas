@@ -11,6 +11,10 @@ const PARAMETROS = [
     { codigo: "temperatura", nombre: "Temperatura", unidad: "C" },
 ];
 
+//qr
+const mac = new URLSearchParams(location.search).get('mac');
+    if (mac) location.replace('vincular.html?mac=' + encodeURIComponent(mac));
+
 const estado = {
     sesion: leerSesion(),
     especies: [],

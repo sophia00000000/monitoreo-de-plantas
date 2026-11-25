@@ -7,6 +7,7 @@
 #include <esp_mac.h>
 #include "tipos.h"
 #include "pantalla.h"
+#include "config.h"
 
 
 class ISensores {
@@ -78,7 +79,6 @@ Animo animoSimulado(const Lectura& l) {
 }
 
 // ---------- main: "el gerente" decide qué adaptador usar ----------
-const char* URL_FRONT = "http://172.20.10.3:5500";   // IP de tu PC donde sirves el front
 
 PantallaOLED pantalla;
 SensoresReales sensores;
