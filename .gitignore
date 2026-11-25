@@ -4,3 +4,4 @@ __pycache__/
 datos/
 .simulador_tokens.json
 certs/
+config.h

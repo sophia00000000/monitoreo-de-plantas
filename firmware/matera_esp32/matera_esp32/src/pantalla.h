@@ -12,6 +12,7 @@ class IPantalla {
   virtual void iniciar() {}
   virtual void mostrarQR(const char* url) = 0;
   virtual void mostrarMascota(Animo animo, const Lectura& l) = 0;
+  virtual void mostrarMensaje(const char* l1, const char* l2) = 0;
   virtual ~IPantalla() {}
 };
 
@@ -95,4 +96,16 @@ class PantallaOLED : public IPantalla {
     d.print(nombres[(int)animo]);
     d.display();
   }
+
+  void mostrarMensaje(const char* l1, const char* l2) override {
+    d.clearDisplay();
+    d.setTextColor(SSD1306_WHITE);
+    d.setTextSize(1);
+    d.setCursor(0, 20);
+    d.println(l1);
+    d.setCursor(0, 34);
+    d.println(l2);
+    d.display();
+  }
+
 };

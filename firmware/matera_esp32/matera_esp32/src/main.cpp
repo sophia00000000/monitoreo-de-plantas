@@ -8,6 +8,7 @@
 #include "tipos.h"
 #include "pantalla.h"
 #include "config.h"
+#include "conexion.h"
 
 
 class ISensores {
@@ -70,7 +71,8 @@ class SensoresReales : public ISensores {
   }
 };
 
-// ---------- ánimo simulado (TEMPORAL: doble del backend, se borra en Etapa 3) ----------
+
+// Ánimo local: respaldo mientras el backend no envíe el estado de la mascota
 Animo animoSimulado(const Lectura& l) {
   if (l.humedad < 30) return Animo::SEDIENTA;
   if (l.temperatura > 30) return Animo::ACALORADA;
@@ -78,48 +80,143 @@ Animo animoSimulado(const Lectura& l) {
   return Animo::FELIZ;
 }
 
-// ---------- main: "el gerente" decide qué adaptador usar ----------
-
+// Objetos principales
 PantallaOLED pantalla;
-SensoresReales sensores;
-bool vinculado = false;          // TEMPORAL: lo cambia el botón; luego vendrá del token guardado
-bool pantallaDibujada = false;
+SensoresReales sensores;  // Si aún no tienes sensores, usa SensoresSimulados
+AlmacenToken almacen;
+ConexionWS conexion{almacen};
+
+String mac;
 
 String macComoTexto() {
   uint8_t m[6];
   esp_read_mac(m, ESP_MAC_WIFI_STA);
+
   char s[18];
-  snprintf(s, sizeof(s), "%02X:%02X:%02X:%02X:%02X:%02X", m[0], m[1], m[2], m[3], m[4], m[5]);
+  snprintf(s, sizeof(s),
+    "%02X:%02X:%02X:%02X:%02X:%02X",
+    m[0], m[1], m[2], m[3], m[4], m[5]);
+
   return String(s);
 }
 
+// Fecha y hora en formato ISO 8601
+String ahoraISO() {
+  time_t t = time(nullptr);
+  struct tm tm;
+  gmtime_r(&t, &tm);
+
+  char s[26];
+  strftime(s, sizeof(s), "%Y-%m-%dT%H:%M:%S+00:00", &tm);
+
+  return String(s);
+}
+
+// Conexión Wi-Fi
+void conectarWifi() {
+  pantalla.mostrarMensaje("Conectando", "Wi-Fi...");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  unsigned long t0 = millis();
+
+  while (WiFi.status() != WL_CONNECTED) {
+    if (millis() - t0 > 20000) {
+      pantalla.mostrarMensaje("Sin Wi-Fi", "reiniciando...");
+      delay(3000);
+      ESP.restart();
+    }
+
+    delay(300);
+  }
+
+  Serial.println("Wi-Fi conectado");
+  Serial.println(WiFi.localIP());
+}
+
+// Sincronización de hora mediante NTP
+void sincronizarHora() {
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+
+  unsigned long t0 = millis();
+
+  while (time(nullptr) < 1700000000 &&
+         millis() - t0 < 15000) {
+    delay(200);
+  }
+}
+
+// Estados de funcionamiento
+enum class Fase {
+  SERVIDOR,
+  QR,
+  OPERANDO
+};
+
+Fase faseAnterior = Fase::OPERANDO;
+bool dibujada = false;
+unsigned long ultimaLectura = 0;
+
 void setup() {
   Serial.begin(115200);
+
   Wire.begin(21, 22);
+
   pantalla.iniciar();
   sensores.iniciar();
-  pinMode(13, INPUT_PULLUP);
+
+  mac = macComoTexto();
+
+  Serial.println("MAC: " + mac);
+
+  conectarWifi();
+  sincronizarHora();
+
+  conexion.iniciar(mac);
 }
 
 void loop() {
-  if (digitalRead(13) == LOW) {            // alterna "sin vincular" / "operando"
-    vinculado = !vinculado;
-    pantallaDibujada = false;
-    delay(300);                            // antirrebote simple
+  conexion.ciclo();
+
+  Fase fase = !conexion.conectado
+    ? Fase::SERVIDOR
+    : conexion.token.length() == 0
+      ? Fase::QR
+      : conexion.autenticado
+        ? Fase::OPERANDO
+        : Fase::SERVIDOR;
+
+  if (fase != faseAnterior) {
+    faseAnterior = fase;
+    dibujada = false;
   }
 
-  if (!vinculado) {
-    if (!pantallaDibujada) {               // el QR se dibuja una sola vez
-      String url = String(URL_FRONT) + "/?mac=" + macComoTexto();
-      Serial.println(url);
-      Serial.printf("Largo del QR: %d (máximo 53)\n", url.length());
-      pantalla.mostrarQR(url.c_str());
-      pantallaDibujada = true;
-    }
-  } else {
+  if (fase == Fase::SERVIDOR && !dibujada) {
+    pantalla.mostrarMensaje("Conectando con", "el servidor...");
+    dibujada = true;
+
+  } else if (fase == Fase::QR && !dibujada) {
+    String url = String(URL_FRONT) + "/?mac=" + mac;
+
+    Serial.printf("QR: %s (largo %d, máximo 53)\n",
+      url.c_str(), url.length());
+
+    pantalla.mostrarQR(url.c_str());
+    dibujada = true;
+
+  } else if (fase == Fase::OPERANDO &&
+             millis() - ultimaLectura >= INTERVALO_LECTURA_MS) {
+
+    ultimaLectura = millis();
+
     Lectura l = sensores.leer();
-    pantalla.mostrarMascota(animoSimulado(l), l);
-    Serial.printf("H=%.0f L=%.0f T=%.1f\n", l.humedad, l.luz, l.temperatura);
-    delay(300);
+
+    conexion.enviarLectura(l, ahoraISO());
+
+    pantalla.mostrarMascota(
+      conexion.hayAnimo ? conexion.animo : animoSimulado(l),
+      l
+    );
   }
 }
