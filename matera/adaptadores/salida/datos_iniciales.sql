@@ -7,3 +7,9 @@ INSERT OR IGNORE INTO regla_animo (parametro_id, estado, animo, prioridad)
     SELECT id, 'ALTO', 'ACALORADA', 2 FROM parametro WHERE codigo = 'temperatura';
 INSERT OR IGNORE INTO regla_animo (parametro_id, estado, animo, prioridad)
     SELECT id, 'BAJO', 'DEPRIMIDA', 3 FROM parametro WHERE codigo = 'luz';
+INSERT OR IGNORE INTO regla_animo (parametro_id, estado, animo, prioridad)
+    SELECT id, 'ALTO', 'ACALORADA', 4 FROM parametro WHERE codigo = 'luz';          -- exceso de sol
+INSERT OR IGNORE INTO regla_animo (parametro_id, estado, animo, prioridad)
+    SELECT id, 'BAJO', 'DEPRIMIDA', 5 FROM parametro WHERE codigo = 'temperatura';  -- frío
+INSERT OR IGNORE INTO regla_animo (parametro_id, estado, animo, prioridad)
+    SELECT id, 'ALTO', 'DEPRIMIDA', 6 FROM parametro WHERE codigo = 'humedad';      -- exceso de agua
