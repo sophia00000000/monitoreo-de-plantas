@@ -1,16 +1,17 @@
 # Matera · Fase 2 — arquitectura hexagonal
 
-Sistema de diagnóstico del estado de plantas. Un ESP32 (aquí, un simulador) reporta humedad, luz y
-temperatura; el backend las evalúa contra la tabla de referencia de la especie, las guarda en SQLite
-y empuja el estado al front en tiempo real.
+Sistema de diagnóstico del estado de plantas. Un ESP32 (real, en Wokwi o el simulador en Python)
+reporta humedad, luz y temperatura; el backend las evalúa contra la tabla de referencia de la
+especie, calcula el **ánimo de la mascota**, guarda todo en SQLite, empuja el estado al front en
+tiempo real y le devuelve el ánimo a la pantalla de la matera.
 
-Tres procesos independientes:
+Procesos independientes:
 
 | Proceso | Qué es | Puerto |
 |---|---|---|
 | Backend | API Flask, responde solo JSON + WebSocket | 5000 |
 | Front | HTML/CSS/JS estáticos servidos aparte | 5500 |
-| Simulador | `simulador_esp32.py`, habla el mismo protocolo que el ESP32 | — |
+| Dispositivo | ESP32 con firmware en `firmware/` (placa real o Wokwi), o `simulador_esp32.py` con el mismo protocolo | — |
 
 ## Requisitos e instalación
 
@@ -130,6 +131,9 @@ python simulador_esp32.py --mac AA:BB:CC:DD:EE:01 --especie sansevieria --interv
 
 Queda esperando con el mensaje `emparejando  MAC AA:BB:CC:DD:EE:01 lista hasta ...` (tiene 10 minutos).
 
+Para usar la ESP32 real o Wokwi en lugar del simulador, vea la sección
+[4. Usar con la ESP32](#4-usar-con-la-esp32-placa-real-o-wokwi).
+
 ### Paso 7 — Vincular el dispositivo
 
 En el detalle de la planta, sección **Dispositivo**, escriba `AA:BB:CC:DD:EE:01` y pulse
@@ -218,7 +222,9 @@ python Main.py
 ```
 
 La base SQLite se crea sola en `datos/matera.db` y el catálogo se siembra desde
-`configuracion/especies.csv` la primera vez.
+`configuracion/especies.csv` la primera vez. Si `datos/matera.db` ya existía con una versión
+anterior del esquema, al arrancar se le agrega la columna `diagnostico.animo` (las mediciones viejas
+quedan `FELIZ`) y la tabla `regla_animo`, sin perder datos.
 
 **Cambio de CSV a BD por configuración (demostración RA15):** detenga el servidor y arránquelo con
 
@@ -294,6 +300,117 @@ Otras opciones: `--modo http` (usa `POST /api/v1/dispositivos/<mac>/lecturas`), 
 token ya emitido), `--lecturas N` (detenerse tras N lecturas), `--url`, `--inseguro`.
 Si el dispositivo se desvincula, el simulador recibe el rechazo, borra su token local y termina.
 
+## 4. Usar con la ESP32 (placa real o Wokwi)
+
+El firmware está en `firmware/matera_esp32/matera_esp32/` y es un proyecto de **PlatformIO**
+(extensión de VS Code). Habla el mismo protocolo WebSocket que el simulador.
+
+### Hardware
+
+| Componente | Wokwi (`diagram.json`, ESP32 DevKit C) | Placa real (ESP32-C3 SuperMini) |
+|---|---|---|
+| Humedad del suelo (analógico) | potenciómetro → GPIO 34 | sensor capacitivo → GPIO 0 |
+| Luz (LDR con divisor de 10 kΩ) | GPIO 35 | GPIO 1 |
+| Temperatura DS18B20 (con pull-up 4,7 kΩ) | GPIO 4 | GPIO 4 |
+| Pantalla OLED 128×64 I²C | SSD1306, SDA 21 / SCL 22 | SH1106, SDA 7 / SCL 6 |
+
+### Paso 1 — Configurar el firmware
+
+```powershell
+cd firmware\matera_esp32\matera_esp32
+copy src\config.example.h src\config.h
+```
+
+Edite `src/config.h` (está en `.gitignore`: nunca suba su contraseña de Wi-Fi):
+
+| Definición | Qué poner |
+|---|---|
+| `WIFI_SSID` / `WIFI_PASS` | Red de **2,4 GHz** (el ESP32 no ve redes de 5 GHz). En Wokwi se usa `Wokwi-GUEST`. |
+| `BACKEND_HOST` | IP del PC donde corre el backend (`ipconfig` → *Dirección IPv4*). En Wokwi: `host.wokwi.internal`. |
+| `BACKEND_PORT` / `BACKEND_SSL` | `5000` / `0`. Use `1` solo si el backend corre con `MATERA_SSL_CERT` (WSS). |
+| `URL_FRONT` | Dirección con la que se abre el front desde el teléfono, sin barra final (p. ej. `http://192.168.1.100:5500`). El QR de la pantalla apunta a `URL_FRONT/?mac=<MAC>` y debe medir 53 caracteres o menos. |
+| `PIN_*` | Ya vienen para cada placa; cámbielos solo si cableó distinto. |
+
+### Paso 2 — Backend y front accesibles desde la red
+
+La ESP32 es otro equipo de la red: no puede usar `127.0.0.1`. Siga los puntos 1 a 4 del
+[Paso 9](#paso-9--adoptar-una-planta-escaneando-el-qr-con-el-teléfono) (IP del PC, regla de
+firewall, backend con `MATERA_CORS_ORIGENES` que incluya `http://<IP>:5500`, y front con
+`--bind 0.0.0.0`). El PC y la ESP32 deben estar en la misma red; con el hotspot del teléfono suele
+funcionar mejor que con la red de la universidad.
+
+### Paso 3 — Compilar y cargar
+
+Desde la carpeta del firmware (o con los botones de PlatformIO en VS Code):
+
+| Entorno | Para qué | Comando |
+|---|---|---|
+| `simulacion` | Wokwi (ESP32 DevKit, define `SIMULACION`) | `pio run -e simulacion` |
+| `real` | ESP32-C3 SuperMini por USB | `pio run -e real -t upload` y luego `pio device monitor` |
+| `calibracion` | Programa aparte para medir los valores crudos de los sensores | `pio run -e calibracion -t upload` |
+
+Si `pio` no está en el PATH, use `%USERPROFILE%\.platformio\penv\Scripts\pio.exe`.
+`platformio.ini` usa la tabla de particiones `huge_app.csv`: el firmware ocupa ~1,3 MB y no cabe en
+la partición por defecto.
+
+**Wokwi:** compile el entorno `simulacion` y abra `diagram.json` con la extensión *Wokwi Simulator*
+de VS Code (*Wokwi: Start Simulator*). `wokwi.toml` ya apunta a `firmware.merged.bin`. Mueva el
+potenciómetro (humedad), la LDR (luz) y la temperatura del DS18B20 para ver cambiar el ánimo.
+
+**Calibración (placa real):** con el entorno `calibracion`, anote el valor del sensor de suelo en
+el aire y dentro de un vaso de agua, y póngalos en `SUELO_AIRE` / `SUELO_AGUA` de `src/main.cpp`.
+Ajuste `RL10` con un luxómetro si lo tiene.
+
+### Paso 4 — Vincular la matera
+
+1. Al encender, la pantalla muestra **Conectando Wi-Fi...** y luego **Conectando con el servidor...**.
+   El monitor serie (115200 baudios) imprime la MAC: `MAC: AA:BB:CC:DD:EE:FF`.
+2. Sin token guardado, la matera se anuncia al backend (ventana de emparejamiento de 10 minutos) y
+   muestra un **QR**.
+3. Escanee el QR con el teléfono: abre `vincular.html?mac=...`. Inicie sesión, elija o cree la planta
+   y confirme. También puede escribir la MAC a mano en el detalle de la planta → **Dispositivo**.
+4. El backend entrega el token, la matera lo guarda en su memoria no volátil, se reinicia, se
+   autentica y empieza a enviar una lectura cada `INTERVALO_LECTURA_MS`.
+5. La pantalla muestra la mascota con H / L / T y su ánimo. En el front, el estado de la planta se
+   actualiza solo.
+
+Al **desvincular** desde el front, la matera recibe `{"tipo": "desvinculado"}`, borra su token, se
+reinicia y vuelve a mostrar el QR. Si el backend rechaza su token tres veces seguidas (por ejemplo,
+porque se borró la base de datos), hace lo mismo.
+
+### Ánimo de la mascota
+
+El ánimo lo decide el backend (`EvaluadorAnimo`) con los parámetros ya evaluados contra los rangos
+**de la especie**, así que la misma lectura puede dejar sedienta a una especie y feliz a otra. Las
+reglas viven en la tabla `regla_animo`; si varias coinciden, gana la de menor prioridad, y si
+ninguna coincide la planta está `FELIZ`:
+
+| Parámetro | Estado | Ánimo | Prioridad |
+|---|---|---|---|
+| humedad | BAJO | `SEDIENTA` | 1 |
+| temperatura | ALTO | `ACALORADA` | 2 |
+| luz | BAJO | `DEPRIMIDA` | 3 |
+
+Tras cada lectura, el backend envía `{"tipo": "mascota", "animo": "SEDIENTA"}` a la conexión
+autenticada de esa MAC. Si la matera aún no lo ha recibido (sin conexión, o antes de la primera
+lectura), la pantalla usa `animoSimulado()` de `main.cpp`, que tiene umbrales fijos y es **solo un
+respaldo**.
+
+Para cambiar una regla basta con editar su fila en `regla_animo`. Para agregar un ánimo nuevo hay que
+añadirlo también al enum `Animo` (`matera/dominio/modelo.py`), al `CHECK` de las columnas `animo`
+en `esquema.sql`, a `tipos.h` y a `ConexionWS::alMensaje` en `conexion.h`.
+
+### Problemas comunes con la ESP32
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| Se queda en **Sin Wi-Fi, reiniciando...** | SSID o contraseña mal escritos, o red de 5 GHz | Revise `config.h`; use una red de 2,4 GHz. En la SuperMini puede ayudar `WiFi.setTxPower(WIFI_POWER_8_5dBm)` en `conectarWifi()` |
+| Se queda en **Conectando con el servidor...** | `BACKEND_HOST` incorrecto, backend apagado o firewall | Compruebe la IP con `ipconfig`, la regla de firewall y que `python Main.py` siga corriendo |
+| El QR abre una página que no carga | `URL_FRONT` apunta a `127.0.0.1` o a una IP vieja | Ponga la IP actual del PC, vuelva a compilar y cargar |
+| `The program size ... is greater than maximum allowed` | Partición por defecto | Verifique `board_build.partitions = huge_app.csv` en `platformio.ini` |
+| La mascota no cambia aunque el diagnóstico sí | La matera no está autenticada (no hay conexión "operando") | Revise el monitor serie: debe llegar `<- {"tipo":"autenticado"}` y luego `<- {"tipo":"mascota",...}` |
+| Lecturas con temperatura `-127` | DS18B20 desconectado o sin resistencia pull-up | Revise el cableado del pin de datos |
+
 ## Pruebas
 
 ```powershell
@@ -302,9 +419,9 @@ python -m unittest discover -s tests -v
 
 | Archivo | Qué prueba |
 |---|---|
-| `tests/test_dominio.py` | Casos de uso con dobles de los puertos de salida (`tests/dobles.py`): lecturas en rango, fuera de rango e inválidas, regla de propiedad, vinculación, invitaciones, especies, cuentas. Sin servidor, archivos ni BD (RA19). |
+| `tests/test_dominio.py` | Casos de uso con dobles de los puertos de salida (`tests/dobles.py`): lecturas en rango, fuera de rango e inválidas, regla de propiedad, vinculación, invitaciones, especies, cuentas y ánimo de la mascota (`EvaluadorAnimo`, notificación a la matera). Sin servidor, archivos ni BD (RA19). |
 | `tests/test_arquitectura.py` | Ningún módulo de `matera/dominio` importa Flask, JWT, bcrypt, SQL, CSV, JSON ni adaptadores (RA4, RA12). |
-| `tests/test_api.py` | Integración HTTP + SQLite temporal, con la tabla de referencia en CSV y en BD. |
+| `tests/test_api.py` | Integración HTTP + SQLite temporal, con la tabla de referencia en CSV y en BD; `animo` en REST y en la respuesta WS, `ReglasAnimoBD` y migración de una BD con el esquema viejo. |
 
 ## API
 
@@ -331,6 +448,23 @@ Todas las rutas bajo `/api/v1`. Los errores siempre tienen la forma
 | WS | `/ws/dispositivos` | MAC + token de dispositivo | RF12, RF20 |
 | WS | `/ws/front` | JWT en el primer mensaje | RF19 |
 
+Las lecturas (`POST /dispositivos/<mac>/lecturas`, `GET /plantas/<id>/lecturas`, `ultima_lectura`
+del detalle y el WS del front) incluyen `"animo"` en la raíz y dentro de `"diagnostico"`. En el
+diagnóstico ad hoc (`POST /diagnosticos`) `animo` es `null`, porque no hay matera a la que mostrarlo.
+
+Protocolo de `/ws/dispositivos` (JSON; `->` dispositivo a backend, `<-` backend a dispositivo):
+
+```text
+-> {"tipo": "anuncio", "mac": "AA:BB:CC:DD:EE:FF"}        <- {"tipo": "emparejando", "expira_en": ...}
+<- {"tipo": "token", "token": "..."}                      -> {"tipo": "token_recibido"}
+-> {"tipo": "autenticar", "mac": "...", "token": "..."}   <- {"tipo": "autenticado"}
+-> {"tipo": "lectura", "humedad": 45, "luz": 300, "temperatura": 22, "tomada_en": "ISO-8601"}
+                                                          <- {"tipo": "diagnostico", "animo": "FELIZ", ...}
+                                                          <- {"tipo": "mascota", "animo": "FELIZ"}
+<- {"tipo": "desvinculado"}
+<- {"tipo": "error", "error": CODIGO, "mensaje": "..."}
+```
+
 Códigos: 400 dato ausente o no numérico · 401 sin identidad o credenciales inválidas ·
 403 sin permiso sobre una planta propia/compartida · 404 recurso inexistente o ajeno ·
 409 conflicto · 410 invitación no disponible · 422 valor fuera del rango físico ·
@@ -342,6 +476,13 @@ Códigos: 400 dato ausente o no numérico · 401 sin identidad o credenciales in
 Main.py                         Arranque del servidor (lee HTTPS de variables de entorno)
 simulador_esp32.py              Simulador del ESP32 (WS o HTTP)
 configuracion/especies.csv|json Tabla de referencia
+firmware/matera_esp32/matera_esp32/
+  platformio.ini                Entornos simulacion (Wokwi), real (ESP32-C3) y calibracion
+  diagram.json, wokwi.toml      Circuito y configuración de Wokwi
+  src/main.cpp                  Sensores, fases (Wi-Fi, servidor, QR, operando) y animoSimulado (respaldo)
+  src/conexion.h                WebSocket con el backend, token en memoria no volátil, mensaje "mascota"
+  src/pantalla.h                OLED: QR, mascota y mensajes
+  src/config.example.h          Plantilla de config.h (Wi-Fi, backend, pines)
 matera/
   app.py                        create_app(): único punto de composición (RA14)
   config.py                     Configuración desde variables de entorno
@@ -353,6 +494,7 @@ matera/
     puertos/entrada.py          DiagnosticarPort, RegistrarLecturaPort, VincularDispositivoPort...
     puertos/salida.py           ConsultarRangosPort, RepositorioEspeciesPort, HistorialLecturasPort...
     servicios/                  Casos de uso (PlantasService, VincularDispositivoService...)
+    servicios/animo.py          EvaluadorAnimo: regla del ánimo de la mascota (función pura)
   adaptadores/
     entrada/http/               Controladores REST, JwtVerificador, LimitadorIntentos
     entrada/api_dispositivos.py LecturasController (HTTP) y WsDispositivoAdapter (WS)
@@ -361,11 +503,14 @@ matera/
     salida/tabla_json.py        AdapterJson         ├ ConsultarRangosPort
     salida/tabla_bd.py          SqliteEspecies      ┘ (+ RepositorioEspeciesPort)
     salida/sqlite_repository.py SqliteUsuarios, SqlitePlantas, SqliteDispositivos, SqliteInvitaciones
-    salida/historial_bd.py      RepoLecturas (HistorialLecturasPort)
+    salida/historial_bd.py      RepoLecturas (HistorialLecturasPort), guarda también el ánimo
+    salida/reglas_animo_bd.py   ReglasAnimoBD (ReglasAnimoPort, tabla regla_animo)
     salida/auditoria_bd.py      SqliteAuditoria (AuditoriaPort)
     salida/seguridad.py         BcryptHasher, JwtAdapter, TokenOpacoGenerator
-    salida/ws_notificador*.py   WsNotificador (estado al front), WsNotificadorDispositivo (token)
+    salida/ws_notificador*.py   WsNotificador (estado al front), WsNotificadorDispositivo (token, ánimo, desvinculación)
     salida/esquema.sql          Esquema SQLite (diagrama entidad-relación)
+    salida/datos_iniciales.sql  Reglas de ánimo iniciales (idempotente)
+    salida/base_datos.py        Conexión SQLite y migración de BD existentes (migrar)
 frontend/                       Cliente web estático
 tests/                          Pruebas
 ```
