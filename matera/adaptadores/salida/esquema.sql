@@ -110,7 +110,21 @@ CREATE TABLE IF NOT EXISTS diagnostico (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     medicion_id   INTEGER UNIQUE NOT NULL REFERENCES medicion (id),
     estado_global TEXT NOT NULL CHECK (estado_global IN ('SALUDABLE', 'EN_RIESGO', 'CRITICO')),
-    evaluado_en   TEXT NOT NULL
+    evaluado_en   TEXT NOT NULL,
+    -- Las BD creadas antes de esta columna la reciben con migrar() en base_datos.py.
+    animo         TEXT NOT NULL DEFAULT 'FELIZ'
+                  CHECK (animo IN ('FELIZ', 'SEDIENTA', 'ACALORADA', 'DEPRIMIDA'))
+);
+
+-- Reglas del animo de la mascota: si el parametro quedo en ese estado, gana la de menor prioridad.
+-- Agregar un animo = una fila aqui y un valor en Animo (modelo.py) y en tipos.h.
+CREATE TABLE IF NOT EXISTS regla_animo (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    parametro_id INTEGER NOT NULL REFERENCES parametro (id),
+    estado       TEXT NOT NULL CHECK (estado IN ('BAJO', 'OPTIMO', 'ALTO')),
+    animo        TEXT NOT NULL CHECK (animo IN ('FELIZ', 'SEDIENTA', 'ACALORADA', 'DEPRIMIDA')),
+    prioridad    INTEGER NOT NULL,
+    UNIQUE (parametro_id, estado)
 );
 
 -- minimo y maximo guardan el rango usado al evaluar, para que el historial no cambie

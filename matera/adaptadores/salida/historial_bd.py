@@ -3,6 +3,7 @@ from datetime import datetime
 
 from matera.adaptadores.salida.base_datos import BaseDatosSqlite, a_fecha, a_texto, ids_parametros
 from matera.dominio.modelo import (
+    Animo,
     Diagnostico,
     EstadoGlobal,
     EstadoParametro,
@@ -32,8 +33,13 @@ class RepoLecturas(HistorialLecturasPort):
                         (medicion_id, parametros[codigo], float(valor)),
                     )
             diagnostico_id = conexion.execute(
-                "INSERT INTO diagnostico (medicion_id, estado_global, evaluado_en) VALUES (?, ?, ?)",
-                (medicion_id, medicion.diagnostico.estado_global.value, a_texto(medicion.evaluado_en)),
+                "INSERT INTO diagnostico (medicion_id, estado_global, evaluado_en, animo) VALUES (?, ?, ?, ?)",
+                (
+                    medicion_id,
+                    medicion.diagnostico.estado_global.value,
+                    a_texto(medicion.evaluado_en),
+                    (medicion.diagnostico.animo or Animo.FELIZ).value,
+                ),
             ).lastrowid
             for p in medicion.diagnostico.parametros:
                 conexion.execute(
@@ -52,7 +58,7 @@ class RepoLecturas(HistorialLecturasPort):
     def listar(
         self, planta_id: int, desde: datetime | None, hasta: datetime | None, limite: int
     ) -> list[Medicion]:
-        consulta = """SELECT m.*, d.id AS diagnostico_id, d.estado_global, d.evaluado_en, p.especie
+        consulta = """SELECT m.*, d.id AS diagnostico_id, d.estado_global, d.evaluado_en, d.animo, p.especie
                       FROM medicion m
                       JOIN diagnostico d ON d.medicion_id = m.id
                       JOIN (SELECT pl.id, e.nombre AS especie FROM planta pl JOIN especie e ON e.id = pl.especie_id) p
@@ -101,6 +107,7 @@ class RepoLecturas(HistorialLecturasPort):
                 )
                 for d in detalles
             ),
+            animo=Animo(fila["animo"]),  # las filas anteriores a la columna quedan FELIZ (DEFAULT)
         )
         return Medicion(
             id=fila["id"],

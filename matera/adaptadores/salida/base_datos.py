@@ -7,6 +7,17 @@ from pathlib import Path
 from matera.dominio.modelo import Especie, Parametro
 
 ESQUEMA = Path(__file__).with_name("esquema.sql")
+DATOS_INICIALES = Path(__file__).with_name("datos_iniciales.sql")
+
+# Columnas agregadas despues de la primera version del esquema: (tabla, columna, definicion).
+# La definicion debe coincidir con la de esquema.sql.
+COLUMNAS_NUEVAS = [
+    (
+        "diagnostico",
+        "animo",
+        "TEXT NOT NULL DEFAULT 'FELIZ' CHECK (animo IN ('FELIZ', 'SEDIENTA', 'ACALORADA', 'DEPRIMIDA'))",
+    ),
+]
 
 
 def a_texto(fecha: datetime | None) -> str | None:
@@ -56,10 +67,12 @@ class BaseDatosSqlite:
             conexion.close()
 
     def inicializar(self, parametros: dict[str, Parametro], especies_semilla: list[Especie]) -> None:
-        """Crea el esquema, registra los parametros y, si el catalogo esta vacio, lo siembra."""
+        """Crea o migra el esquema, registra los parametros, carga los datos iniciales y siembra el catalogo."""
         with self.lectura() as conexion:
             conexion.execute("PRAGMA journal_mode = WAL")
             conexion.executescript(ESQUEMA.read_text(encoding="utf-8"))
+        with self.transaccion() as conexion:
+            migrar(conexion)
         with self.transaccion() as conexion:
             for p in parametros.values():
                 conexion.execute(
@@ -68,10 +81,24 @@ class BaseDatosSqlite:
                            min_fisico = excluded.min_fisico, max_fisico = excluded.max_fisico""",
                     (p.codigo, p.unidad, p.min_fisico, p.max_fisico),
                 )
+            for sentencia in DATOS_INICIALES.read_text(encoding="utf-8").split(";"):
+                if sentencia.strip():
+                    conexion.execute(sentencia)
             vacio = conexion.execute("SELECT COUNT(*) FROM especie").fetchone()[0] == 0
             if vacio:
                 for especie in especies_semilla:
                     guardar_especie(conexion, especie)
+
+
+def migrar(conexion: sqlite3.Connection) -> None:
+    """Idempotente: agrega a las BD existentes las columnas que CREATE TABLE IF NOT EXISTS no agrega.
+
+    Las filas viejas reciben el DEFAULT de la columna (p. ej. las mediciones antiguas quedan FELIZ).
+    """
+    for tabla, columna, definicion in COLUMNAS_NUEVAS:
+        existentes = {fila["name"] for fila in conexion.execute(f"PRAGMA table_info({tabla})")}
+        if columna not in existentes:
+            conexion.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {definicion}")
 
 
 def ids_parametros(conexion: sqlite3.Connection) -> dict[str, int]:
