@@ -66,6 +66,9 @@ button.peligro:hover { background: #f5dcd4; }
 .chip { font: .72rem 'Space Mono', monospace; padding: 5px 10px; border: 1px solid var(--line); }
 .chip.vivo { color: var(--leaf); border-color: var(--leaf); }
 .chip.vivo::before { content: "● "; }
+.chip.advertencia { color: var(--sun); border-color: var(--sun); background: var(--sand); }
+.chip.advertencia::before { content: "▲ "; }
+.advertencia-texto { color: var(--sun); font-weight: 700; }
 
 .catalogo, .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .tarjetas { margin: 24px 0; }

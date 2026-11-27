@@ -105,6 +105,8 @@ void conectarWifi() {
     }
     delay(300);
   }
+  WiFi.setSleep(false);          // el ahorro de energia del radio provoca cortes en WebSocket
+  WiFi.setAutoReconnect(true);   // si el AP se cae, el ESP32 vuelve a asociarse solo
 }
 
 void sincronizarHora() {

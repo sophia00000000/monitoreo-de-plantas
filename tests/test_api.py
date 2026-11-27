@@ -187,6 +187,9 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(respuesta["animo"], "ACALORADA")
         self.assertEqual(conexion.recibidos, [{"tipo": "mascota", "animo": "ACALORADA"}])
 
+    def test_los_websockets_hacen_ping_para_cerrar_conexiones_muertas(self):
+        self.assertEqual(self.app.config["SOCK_SERVER_OPTIONS"]["ping_interval"], 25)
+
     def test_lectura_por_post_sin_matera_conectada_igual_se_guarda(self):
         ana = self.sesion("ana")
         token = self.vincular(ana, self.crear_planta(ana))  # no hay conexion "operando" registrada

@@ -265,6 +265,11 @@ Abrir `http://127.0.0.1:5500/`. El front:
 - registra e inicia sesión (RF8, RF9);
 - crea, edita y elimina plantas, y muestra su estado en vivo por WebSocket con consulta periódica
   de respaldo cada 15 s (RF10, RF13, RF19);
+- muestra la edad de la última lectura ("en vivo · ultima lectura hace X s"). Si pasan más de
+  3 intervalos de lectura sin datos, el indicador y el detalle de la planta pasan a **advertencia**:
+  "en vivo" solo significa que el WebSocket del navegador está abierto, no que la matera siga
+  enviando. El intervalo es 5 s por defecto; si usa otro, defina `window.MATERA_INTERVALO_S`
+  antes de cargar `app.js`;
 - filtra el historial por fechas (RF14);
 - vincula y desvincula el dispositivo por MAC (RF11, RF21);
 - genera el QR de invitación de un solo uso y lo canjea (RF15);
@@ -378,6 +383,19 @@ Al **desvincular** desde el front, la matera recibe `{"tipo": "desvinculado"}`, 
 reinicia y vuelve a mostrar el QR. Si el backend rechaza su token tres veces seguidas (por ejemplo,
 porque se borró la base de datos), hace lo mismo.
 
+### Recuperación de conexiones caídas
+
+Una conexión WebSocket puede morir sin cerrarse (el PC cambia de red, el hotspot se apaga, el
+backend se reinicia). Para que nadie se quede congelado:
+
+| Dónde | Mecanismo | Efecto |
+|---|---|---|
+| ESP32 (`conexion.h`) | Watchdog de aplicación: cada lectura debe recibir alguna respuesta (`diagnostico`, `mascota` o `error`). Tras 3 lecturas seguidas sin respuesta, `ws.disconnect()` | Reconecta y se vuelve a autenticar en ~15 s; la pantalla muestra **Conectando con el servidor...** mientras tanto |
+| ESP32 (`conexion.h`) | `enableHeartbeat(15000, 3000, 2)`: ping cada 15 s | Detecta el socket muerto aunque no haya lecturas |
+| ESP32 (`main.cpp`) | `WiFi.setSleep(false)` y `WiFi.setAutoReconnect(true)` | Menos cortes del radio; se reasocia solo al AP |
+| Backend (`app.py`) | `SOCK_SERVER_OPTIONS = {"ping_interval": 25}` | Cierra los sockets sin pong y libera la conexión "operando" de esa MAC |
+| Front (`app.js`) | Edad de la última lectura y advertencia tras 3 intervalos sin datos | El usuario ve que los datos están viejos |
+
 ### Ánimo de la mascota
 
 El ánimo lo decide el backend (`EvaluadorAnimo`) con los parámetros ya evaluados contra los rangos
@@ -409,7 +427,9 @@ en `esquema.sql`, a `tipos.h` y a `ConexionWS::alMensaje` en `conexion.h`.
 | El QR abre una página que no carga | `URL_FRONT` apunta a `127.0.0.1` o a una IP vieja | Ponga la IP actual del PC, vuelva a compilar y cargar |
 | `The program size ... is greater than maximum allowed` | Partición por defecto | Verifique `board_build.partitions = huge_app.csv` en `platformio.ini` |
 | La mascota no cambia aunque el diagnóstico sí | La matera no está autenticada (no hay conexión "operando") | Revise el monitor serie: debe llegar `<- {"tipo":"autenticado"}` y luego `<- {"tipo":"mascota",...}` |
-| Lecturas con temperatura `-127` | DS18B20 desconectado o sin resistencia pull-up | Revise el cableado del pin de datos |
+| Lecturas con temperatura `-127` | DS18B20 desconectado o sin resistencia pull-up | Revise el cableado del pin de datos (el backend responde `error` a esas lecturas, pero la matera no se reconecta por eso) |
+| El monitor serie repite `[WS] Sin respuesta del backend: reconectando` | El backend no contesta las lecturas (caído, reiniciándose o en otra IP) | Revise la terminal del backend y `BACKEND_HOST` |
+| El front dice **en vivo · sin datos nuevos hace X s** | La matera dejó de enviar | Revise su pantalla y el monitor serie; debería reconectarse sola en ~15 s |
 
 ## Pruebas
 

@@ -24,12 +24,18 @@ class ConexionWS {
   AlmacenToken& almacen;
   String mac;
   unsigned long reiniciarEn = 0;
-  int rechazos = 0; 
+  int rechazos = 0;
+  // Watchdog de aplicacion: el backend responde cada lectura ("diagnostico" + "mascota", o "error"
+  // si la lectura es invalida). Si dejan de llegar respuestas, la conexion esta muerta aunque el
+  // socket parezca abierto.
+  static const int MAX_LECTURAS_SIN_RESPUESTA = 3;
+  int sinRespuesta = 0;
 
   void enviar(JsonDocument& d) { String s; serializeJson(d, s); ws.sendTXT(s); }
 
   void alConectar() {
     conectado = true;
+    sinRespuesta = 0;
     JsonDocument d;
     d["mac"] = mac;
     if (token.length() > 0) { d["tipo"] = "autenticar"; d["token"] = token; }
@@ -42,6 +48,9 @@ class ConexionWS {
     JsonDocument d;
     if (deserializeJson(d, datos, n)) return;
     String tipo = d["tipo"] | "";
+    // Cualquier mensaje prueba que la conexion vive. No solo "diagnostico"/"mascota": con el
+    // DS18B20 desconectado (-127 C) cada lectura recibe "error" y no hay que reconectar en bucle.
+    sinRespuesta = 0;
 
     if (tipo == "token") {
       token = String(d["token"] | "");
@@ -114,6 +123,8 @@ class ConexionWS {
     ws.begin(BACKEND_HOST, BACKEND_PORT, BACKEND_WS_PATH);
 #endif
     ws.setReconnectInterval(5000);
+    // Ping cada 15 s; si no llega el pong en 3 s dos veces seguidas, la libreria cierra y reconecta.
+    ws.enableHeartbeat(15000, 3000, 2);
   }
 
   void ciclo() {
@@ -129,5 +140,11 @@ class ConexionWS {
     d["temperatura"] = l.temperatura;
     d["tomada_en"] = fecha;
     enviar(d);
+    if (++sinRespuesta >= MAX_LECTURAS_SIN_RESPUESTA) {
+      Serial.println("[WS] Sin respuesta del backend: reconectando");
+      sinRespuesta = 0;
+      autenticado = false;                     // la pantalla vuelve a "Conectando con el servidor..."
+      ws.disconnect();                         // setReconnectInterval(5000) vuelve a conectar
+    }
   }
 };

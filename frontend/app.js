@@ -5,6 +5,10 @@ const API_BASE = window.MATERA_API || `${location.protocol}//${location.hostname
 const API = `${API_BASE}/api/v1`;
 const WS_URL = API_BASE.replace(/^http/, "ws") + "/ws/front";
 const CONSULTA_PERIODICA_MS = 15000;
+// Cada cuanto envia lecturas la matera (INTERVALO_LECTURA_MS en config.h, --intervalo del simulador).
+const INTERVALO_LECTURA_S = Number(window.MATERA_INTERVALO_S) || 5;
+// Si pasan mas de estos intervalos sin datos, el indicador "en vivo" pasa a advertencia.
+const INTERVALOS_SIN_DATOS = 3;
 const PARAMETROS = [
     { codigo: "humedad", nombre: "Humedad", unidad: "%" },
     { codigo: "luz", nombre: "Luz", unidad: "lux" },
@@ -21,7 +25,9 @@ const estado = {
     plantas: [],
     plantaAbierta: null,
     socket: null,
+    enVivo: false,          // el WS del front esta autenticado
     temporizador: null,
+    relojFrescura: null,    // repinta "hace X s" cada segundo
 };
 
 // ------------------------------------------------------------------ utilidades
@@ -119,6 +125,8 @@ function iniciarSesion(sesion) {
     conectarTiempoReal();
     clearInterval(estado.temporizador);
     estado.temporizador = setInterval(() => estado.sesion && cargarPlantas(false), CONSULTA_PERIODICA_MS);
+    clearInterval(estado.relojFrescura);
+    estado.relojFrescura = setInterval(pintarFrescura, 1000);
     mostrarVista("plantas");
     canjearPendiente();
 }
@@ -126,8 +134,11 @@ function iniciarSesion(sesion) {
 function cerrarSesion() {
     guardarSesion(null);
     clearInterval(estado.temporizador);
+    clearInterval(estado.relojFrescura);
     estado.socket?.close();
     estado.socket = null;
+    estado.enVivo = false;
+    pintarFrescura();
     estado.plantas = [];
     estado.plantaAbierta = null;
     pintarSesion();
@@ -288,6 +299,7 @@ function pintarDetalle() {
         </div>
 
         <h3>Estado actual</h3>
+        <p id="frescura-planta" class="ayuda"></p>
         <div id="estado-planta">${p.ultima_lectura
             ? htmlDiagnostico(p.ultima_lectura.diagnostico, `Lectura del ${fecha(p.ultima_lectura.tomada_en)}`)
             : `<p class="ayuda">Todavia no hay lecturas. Vincula un dispositivo para empezar.</p>`}</div>
@@ -334,6 +346,7 @@ function pintarDetalle() {
         <div id="historial"></div>
     </section>`;
 
+    pintarFrescura();
     $("#cerrar-detalle").addEventListener("click", () => {
         estado.plantaAbierta = null;
         $("#detalle-planta").innerHTML = "";
@@ -439,7 +452,6 @@ function pintarHistorial(lecturas) {
 
 function conectarTiempoReal() {
     if (!estado.sesion || estado.socket) return;
-    const indicador = $("#estado-tiempo-real");
     let socket;
     try { socket = new WebSocket(WS_URL); } catch { return; }
     estado.socket = socket;
@@ -449,8 +461,8 @@ function conectarTiempoReal() {
     socket.addEventListener("message", (evento) => {
         const mensaje = JSON.parse(evento.data);
         if (mensaje.tipo === "autenticado") {
-            indicador.textContent = "en vivo";
-            indicador.className = "chip vivo";
+            estado.enVivo = true;
+            pintarFrescura();
             socket.suscritas = new Set();
             suscribirPlantas();
         } else if (mensaje.tipo === "estado") {
@@ -458,11 +470,68 @@ function conectarTiempoReal() {
         }
     });
     socket.addEventListener("close", () => {
-        indicador.textContent = "sin conexion en vivo (consulta cada 15 s)";
-        indicador.className = "chip";
-        if (estado.socket === socket) estado.socket = null;
+        if (estado.socket === socket) {
+            estado.socket = null;
+            estado.enVivo = false;
+            pintarFrescura();
+        }
         if (estado.sesion) setTimeout(conectarTiempoReal, 5000);
     });
+}
+
+// "En vivo" solo dice que el WS del front esta abierto; no que la matera siga enviando. Por eso se
+// muestra la edad de la ultima lectura y se advierte si pasan INTERVALOS_SIN_DATOS sin datos.
+
+function segundosDesde(iso) {
+    return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));  // >= 0 ante relojes desfasados
+}
+
+function hace(segundos) {
+    if (segundos < 120) return `hace ${segundos} s`;
+    if (segundos < 7200) return `hace ${Math.round(segundos / 60)} min`;
+    return `hace ${Math.round(segundos / 3600)} h`;
+}
+
+function datosViejos(segundos) {
+    return segundos > INTERVALO_LECTURA_S * INTERVALOS_SIN_DATOS;
+}
+
+function pintarFrescura() {
+    const indicador = $("#estado-tiempo-real");
+    if (!estado.enVivo) {
+        indicador.textContent = "sin conexion en vivo (consulta cada 15 s)";
+        indicador.className = "chip";
+    } else {
+        // La lectura mas reciente entre las plantas con dispositivo vinculado.
+        const fechas = estado.plantas
+            .filter((p) => p.dispositivo && p.ultima_lectura)
+            .map((p) => p.ultima_lectura.tomada_en);
+        if (!fechas.length) {
+            indicador.textContent = "en vivo · sin lecturas";
+            indicador.className = "chip vivo";
+        } else {
+            const segundos = Math.min(...fechas.map(segundosDesde));
+            const viejos = datosViejos(segundos);
+            indicador.textContent = viejos
+                ? `en vivo · sin datos nuevos ${hace(segundos)}`
+                : `en vivo · ultima lectura ${hace(segundos)}`;
+            indicador.className = viejos ? "chip advertencia" : "chip vivo";
+        }
+    }
+
+    const detalle = $("#frescura-planta");
+    const planta = estado.plantaAbierta;
+    if (!detalle || !planta) return;
+    if (!planta.ultima_lectura) {
+        detalle.textContent = "";
+        return;
+    }
+    const segundos = segundosDesde(planta.ultima_lectura.tomada_en);
+    const viejos = planta.dispositivo && datosViejos(segundos);
+    detalle.textContent = viejos
+        ? `Ultima lectura ${hace(segundos)}: el dispositivo no esta enviando datos. Revise su conexion.`
+        : `Ultima lectura ${hace(segundos)}.`;
+    detalle.className = viejos ? "ayuda advertencia-texto" : "ayuda";
 }
 
 function suscribirPlantas() {

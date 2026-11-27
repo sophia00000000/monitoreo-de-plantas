@@ -113,6 +113,9 @@ def create_app(config: Configuracion | None = None) -> Flask:
     # ---------------------------------------------------- adaptadores de entrada
     app = Flask(__name__, static_folder=None)  # RA1: el backend solo responde JSON
     CORS(app, resources={r"/api/*": {"origins": config.origenes_cors}})
+    # Ping cada 25 s en todos los WS (matera y front): si no llega el pong antes del siguiente ping,
+    # simple-websocket cierra el socket y el adaptador libera la conexion "operando" de esa MAC.
+    app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
     sock = Sock(app)
     verificador = JwtVerificador(config.jwt_secreto)
     limitador = LimitadorIntentos(config.limite_intentos, config.ventana_limite_segundos)
