@@ -19,6 +19,7 @@ from matera.dominio.errores import (
     ValorNoNumerico,
 )
 from matera.dominio.modelo import (
+    Animo,
     Especie,
     EstadoDispositivo,
     EstadoGlobal,
@@ -32,6 +33,7 @@ from matera.dominio.modelo import (
     normalizar_mac,
 )
 from matera.dominio.politica_propiedad import PoliticaPropiedad
+from matera.dominio.servicios.animo import EvaluadorAnimo
 from matera.dominio.servicios.autenticacion import AutenticacionService
 from matera.dominio.servicios.catalogo import CatalogoService
 from matera.dominio.servicios.compartir import CompartirPlantaService
@@ -46,6 +48,7 @@ from matera.dominio.servicios.plantas import PlantasService
 from matera.dominio.servicios.registrar_lectura import RegistrarLecturaService
 from matera.dominio.validador import Evaluador
 from tests.dobles import (
+    SANSEVIERIA,
     AdapterEnMemoria,
     AuditoriaEnMemoria,
     DispositivosEnMemoria,
@@ -57,6 +60,7 @@ from tests.dobles import (
     NotificadorDispositivoFalso,
     NotificadorEstadoFalso,
     PlantasEnMemoria,
+    ReglasAnimoEnMemoria,
     RelojFijo,
     UsuariosEnMemoria,
 )
@@ -80,6 +84,7 @@ class Escenario:
         self.generador = GeneradorTokenFalso()
         self.notificador_dispositivo = NotificadorDispositivoFalso()
         self.notificador_estado = NotificadorEstadoFalso()
+        self.reglas_animo = ReglasAnimoEnMemoria()
 
         self.politica = PoliticaPropiedad(self.plantas, self.auditoria, self.reloj)
         self.evaluador = Evaluador(self.rangos)
@@ -95,7 +100,8 @@ class Escenario:
             self.dispositivos, self.generador, self.reloj, self.auditoria
         )
         self.lecturas = RegistrarLecturaService(
-            self.dispositivos, self.plantas, self.evaluador, self.historial, self.notificador_estado, self.reloj
+            self.dispositivos, self.plantas, self.evaluador, self.historial, self.notificador_estado, self.reloj,
+            self.reglas_animo, EvaluadorAnimo(), self.notificador_dispositivo,
         )
         self.compartir = CompartirPlantaService(
             self.plantas, self.invitaciones, self.politica, self.generador, self.reloj, self.auditoria,
@@ -415,6 +421,69 @@ class RegistrarLecturaTest(unittest.TestCase):
             self.e.lecturas.registrar(
                 self.dispositivo_id, Lectura(OPTIMA), self.e.reloj.ahora() + timedelta(hours=1), OrigenLectura.WS
             )
+
+    def test_el_animo_se_guarda_con_la_medicion(self):
+        medicion = self.e.lecturas.registrar(
+            self.dispositivo_id, Lectura({**OPTIMA, "humedad": 10}), None, OrigenLectura.WS
+        )
+        self.assertEqual(medicion.diagnostico.animo, Animo.SEDIENTA)
+        self.assertEqual(self.e.historial.mediciones[-1].diagnostico.animo, Animo.SEDIENTA)
+
+    def test_el_animo_se_notifica_a_la_mac_del_dispositivo(self):
+        self.e.lecturas.registrar(
+            self.dispositivo_id, Lectura({**OPTIMA, "temperatura": 40}), None, OrigenLectura.WS
+        )
+        self.assertEqual(self.e.notificador_dispositivo.animos, [(MAC, Animo.ACALORADA)])
+
+    def test_si_la_matera_no_recibe_el_animo_la_medicion_igual_se_devuelve(self):
+        self.e.notificador_dispositivo.conectada = False
+        medicion = self.e.lecturas.registrar(self.dispositivo_id, Lectura(OPTIMA), None, OrigenLectura.WS)
+        self.assertEqual(medicion.diagnostico.animo, Animo.FELIZ)
+        self.assertEqual(self.e.historial.mediciones, [medicion])
+        self.assertEqual(self.e.notificador_dispositivo.animos, [])
+
+    def test_desvincular_con_la_matera_desconectada_no_falla(self):
+        self.e.notificador_dispositivo.conectada = False
+        self.e.vinculacion.desvincular(self.e.ana, self.planta.id)
+        self.assertEqual(self.e.dispositivos.obtener(self.dispositivo_id).estado, EstadoDispositivo.REVOCADO)
+
+
+# ====================================================================== animo de la mascota (RF12, RF19)
+
+class EvaluadorAnimoTest(unittest.TestCase):
+    def setUp(self):
+        self.evaluador = Evaluador(AdapterEnMemoria())
+        self.animo = EvaluadorAnimo()
+        self.reglas = ReglasAnimoEnMemoria().listar()
+
+    def diagnostico(self, **valores):
+        return self.evaluador.diagnosticar("sansevieria", Lectura({**OPTIMA, **valores}))
+
+    def test_todo_optimo_es_feliz(self):
+        self.assertEqual(self.animo.evaluar(self.diagnostico(), self.reglas), Animo.FELIZ)
+
+    def test_gana_la_regla_de_menor_prioridad(self):
+        diagnostico = self.diagnostico(humedad=10, temperatura=40)
+        self.assertEqual(self.animo.evaluar(diagnostico, self.reglas), Animo.SEDIENTA)
+        # El orden de las reglas no importa, solo la prioridad.
+        self.assertEqual(self.animo.evaluar(diagnostico, list(reversed(self.reglas))), Animo.SEDIENTA)
+
+    def test_sin_reglas_es_feliz(self):
+        self.assertEqual(self.animo.evaluar(self.diagnostico(humedad=10, luz=10), []), Animo.FELIZ)
+
+    def test_la_misma_lectura_da_distinto_animo_segun_la_especie(self):
+        helecho = Especie(
+            nombre="helecho",
+            nombre_cientifico="Helecho de prueba",
+            fuente="prueba",
+            rangos={"humedad": Rango(50, 80), "luz": Rango(100, 800), "temperatura": Rango(18, 35)},
+        )
+        evaluador = Evaluador(AdapterEnMemoria([SANSEVIERIA, helecho]))
+        lectura = Lectura(OPTIMA)  # humedad 40: optima para la sansevieria, baja para el helecho
+        sansevieria = self.animo.evaluar(evaluador.diagnosticar("sansevieria", lectura), self.reglas)
+        del_helecho = self.animo.evaluar(evaluador.diagnosticar("helecho", lectura), self.reglas)
+        self.assertEqual(sansevieria, Animo.FELIZ)
+        self.assertEqual(del_helecho, Animo.SEDIENTA)
 
 
 # ====================================================================== invitaciones (RF15, RA20, RA21)

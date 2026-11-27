@@ -128,14 +128,16 @@ def create_app(config: Configuracion | None = None) -> Flask:
 
     # Dispositivos (ESP32 / simulador): HTTP y WebSocket
     app.register_blueprint(crear_lecturas_controller(autenticacion_dispositivo, registrar_lectura))
-    WsDispositivoAdapter(
+    ws_dispositivos = WsDispositivoAdapter(
         vinculacion, autenticacion_dispositivo, registrar_lectura, notificador_dispositivo, limitador
-    ).registrar_en(sock)
+    )
+    ws_dispositivos.registrar_en(sock)
 
     registrar_manejadores_error(app)
     app.extensions["matera"] = {
         "config": config,
         "notificador_dispositivo": notificador_dispositivo,
         "emparejar": vinculacion,
+        "ws_dispositivos": ws_dispositivos,
     }
     return app

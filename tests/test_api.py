@@ -3,13 +3,20 @@
 No son pruebas del dominio (esas estan en test_dominio.py); verifican que la traduccion HTTP,
 la persistencia y la composicion funcionen juntas.
 """
+import json
 import shutil
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
+from matera.adaptadores.salida.base_datos import BaseDatosSqlite
+from matera.adaptadores.salida.historial_bd import RepoLecturas
+from matera.adaptadores.salida.reglas_animo_bd import ReglasAnimoBD
 from matera.app import create_app
 from matera.config import Configuracion
+from matera.dominio.modelo import PARAMETROS, Animo
+from tests.dobles import REGLAS_ANIMO
 
 OPTIMA = {"humedad": 40, "luz": 300, "temperatura": 22}
 MAC = "AA:BB:CC:DD:EE:01"
@@ -24,6 +31,17 @@ class _DispositivoFalso:
     def enviar(self, mensaje):
         self.token = mensaje["token"]
         self.notificador.confirmar(self.mac)
+        return True
+
+
+class _ConexionOperando:
+    """Conexion WS simulada de una matera ya autenticada: guarda lo que el backend le envia."""
+
+    def __init__(self):
+        self.recibidos: list[dict] = []
+
+    def enviar(self, mensaje):
+        self.recibidos.append(mensaje)
         return True
 
 
@@ -89,6 +107,7 @@ class ApiTest(unittest.TestCase):
         respuesta = self.cliente.post("/api/v1/diagnosticos", json={"especie": "sansevieria", **OPTIMA})
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta.get_json()["estado_global"], "SALUDABLE")
+        self.assertIsNone(respuesta.get_json()["animo"])  # el diagnostico ad hoc no evalua el animo
 
     def test_errores_de_entrada_tienen_codigo_y_cuerpo_uniforme(self):
         casos = [
@@ -129,6 +148,8 @@ class ApiTest(unittest.TestCase):
         ok = self.cliente.post(url, json={**OPTIMA, "humedad": 10}, headers={"Authorization": f"Bearer {token}"})
         self.assertEqual(ok.status_code, 201, ok.get_json())
         self.assertEqual(ok.get_json()["diagnostico"]["estado_global"], "EN_RIESGO")
+        self.assertEqual(ok.get_json()["animo"], "SEDIENTA")
+        self.assertEqual(ok.get_json()["diagnostico"]["animo"], "SEDIENTA")
 
         malo = self.cliente.post(url, json=OPTIMA, headers={"Authorization": "Bearer token-falso"})
         self.assertEqual(malo.status_code, 401)
@@ -138,6 +159,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(detalle["dispositivo"]["mac"], MAC)
         historial = self.cliente.get(f"/api/v1/plantas/{planta_id}/lecturas", headers=ana).get_json()
         self.assertEqual(len(historial["lecturas"]), 1)
+        self.assertEqual(historial["lecturas"][0]["animo"], "SEDIENTA")  # leido de la BD
         vacio = self.cliente.get(
             f"/api/v1/plantas/{planta_id}/lecturas?desde=2099-01-01T00:00:00Z", headers=ana
         ).get_json()
@@ -146,6 +168,33 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(self.cliente.delete(f"/api/v1/plantas/{planta_id}/dispositivo", headers=ana).status_code, 204)
         revocado = self.cliente.post(url, json=OPTIMA, headers={"Authorization": f"Bearer {token}"})
         self.assertEqual(revocado.status_code, 401)
+
+    def test_respuesta_ws_diagnostico_incluye_animo_y_la_matera_recibe_mascota(self):
+        ana = self.sesion("ana")
+        token = self.vincular(ana, self.crear_planta(ana))
+        adaptador = self.app.extensions["matera"]["ws_dispositivos"]
+        conexion = _ConexionOperando()
+        sesion = {"mac_emparejando": None, "dispositivo_id": None, "mac": None}
+        with self.app.test_request_context():
+            autenticado = adaptador._procesar(
+                conexion, sesion, json.dumps({"tipo": "autenticar", "mac": MAC, "token": token})
+            )
+            respuesta = adaptador._procesar(
+                conexion, sesion, json.dumps({"tipo": "lectura", **OPTIMA, "temperatura": 40})
+            )
+        self.assertEqual(autenticado, {"tipo": "autenticado"})
+        self.assertEqual(respuesta["tipo"], "diagnostico")
+        self.assertEqual(respuesta["animo"], "ACALORADA")
+        self.assertEqual(conexion.recibidos, [{"tipo": "mascota", "animo": "ACALORADA"}])
+
+    def test_lectura_por_post_sin_matera_conectada_igual_se_guarda(self):
+        ana = self.sesion("ana")
+        token = self.vincular(ana, self.crear_planta(ana))  # no hay conexion "operando" registrada
+        respuesta = self.cliente.post(
+            f"/api/v1/dispositivos/{MAC}/lecturas", json=OPTIMA, headers={"Authorization": f"Bearer {token}"}
+        )
+        self.assertEqual(respuesta.status_code, 201, respuesta.get_json())
+        self.assertEqual(respuesta.get_json()["animo"], "FELIZ")
 
     def test_vincular_sin_emparejamiento_responde_uniforme(self):
         ana = self.sesion("ana")
@@ -215,6 +264,69 @@ class ApiConTablaEnBdTest(ApiTest):
         self.assertEqual(respuesta.status_code, 200, respuesta.get_json())
         nombres = [e["nombre"] for e in self.cliente.get("/api/v1/especies").get_json()["especies"]]
         self.assertIn("monstera", nombres)
+
+
+# Esquema anterior a diagnostico.animo y regla_animo (solo las tablas que la prueba llena).
+ESQUEMA_VIEJO = """
+CREATE TABLE parametro (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, codigo TEXT UNIQUE NOT NULL, unidad TEXT NOT NULL,
+    min_fisico REAL NOT NULL, max_fisico REAL NOT NULL
+);
+CREATE TABLE especie (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT UNIQUE NOT NULL, nombre_cientifico TEXT,
+    fuente TEXT NOT NULL, activa INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE planta (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, especie_id INTEGER NOT NULL REFERENCES especie (id),
+    apodo TEXT NOT NULL, creada_en TEXT NOT NULL, activa INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE medicion (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, planta_id INTEGER NOT NULL REFERENCES planta (id),
+    dispositivo_id INTEGER NULL, tomada_en TEXT NOT NULL,
+    origen TEXT NOT NULL CHECK (origen IN ('HTTP', 'WS'))
+);
+CREATE TABLE diagnostico (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, medicion_id INTEGER UNIQUE NOT NULL REFERENCES medicion (id),
+    estado_global TEXT NOT NULL CHECK (estado_global IN ('SALUDABLE', 'EN_RIESGO', 'CRITICO')),
+    evaluado_en TEXT NOT NULL
+);
+INSERT INTO especie (nombre, fuente) VALUES ('sansevieria', 'prueba');
+INSERT INTO planta (especie_id, apodo, creada_en) VALUES (1, 'Vieja', '2026-01-01T00:00:00.000000+00:00');
+INSERT INTO medicion (planta_id, tomada_en, origen) VALUES (1, '2026-01-01T00:00:00.000000+00:00', 'WS');
+INSERT INTO diagnostico (medicion_id, estado_global, evaluado_en)
+    VALUES (1, 'SALUDABLE', '2026-01-01T00:00:00.000000+00:00');
+"""
+
+
+class BaseDeDatosAnimoTest(unittest.TestCase):
+    def setUp(self):
+        self.carpeta = Path(tempfile.mkdtemp())
+        self.ruta = self.carpeta / "matera.db"
+
+    def tearDown(self):
+        shutil.rmtree(self.carpeta, ignore_errors=True)
+
+    def test_reglas_animo_bd_lee_los_datos_iniciales(self):
+        bd = BaseDatosSqlite(self.ruta)
+        bd.inicializar(PARAMETROS, [])
+        bd.inicializar(PARAMETROS, [])  # idempotente: no duplica reglas
+        self.assertEqual(ReglasAnimoBD(bd).listar(), REGLAS_ANIMO)
+
+    def test_la_migracion_no_rompe_una_bd_con_el_esquema_viejo(self):
+        conexion = sqlite3.connect(self.ruta)
+        conexion.executescript(ESQUEMA_VIEJO)
+        conexion.close()
+
+        bd = BaseDatosSqlite(self.ruta)
+        bd.inicializar(PARAMETROS, [])
+        bd.inicializar(PARAMETROS, [])  # la segunda vez no intenta agregar la columna de nuevo
+
+        with bd.lectura() as c:
+            columnas = {fila["name"] for fila in c.execute("PRAGMA table_info(diagnostico)")}
+        self.assertIn("animo", columnas)
+        vieja = RepoLecturas(bd).ultima(1)
+        self.assertEqual(vieja.diagnostico.animo, Animo.FELIZ)
+        self.assertEqual(len(ReglasAnimoBD(bd).listar()), 3)
 
 
 if __name__ == "__main__":

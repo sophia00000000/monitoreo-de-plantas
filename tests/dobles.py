@@ -6,17 +6,20 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 from matera.dominio.modelo import (
+    Animo,
     Dispositivo,
     EntradaAuditoria,
     Especie,
     EstadoDispositivo,
     EstadoInvitacion,
+    EstadoParametro,
     EstadoSolicitud,
     Identidad,
     Invitacion,
     Medicion,
     Planta,
     Rango,
+    ReglaAnimo,
     Rol,
     SolicitudEspecie,
     TipoVinculo,
@@ -32,6 +35,7 @@ from matera.dominio.puertos.salida import (
     HistorialLecturasPort,
     NotificadorDispositivoPort,
     NotificadorEstadoPort,
+    ReglasAnimoPort,
     RelojPort,
     RepositorioDispositivosPort,
     RepositorioEspeciesPort,
@@ -50,6 +54,13 @@ SANSEVIERIA = Especie(
         "temperatura": Rango(18, 35),
     },
 )
+
+# Las mismas reglas que siembra datos_iniciales.sql.
+REGLAS_ANIMO = [
+    ReglaAnimo("humedad", EstadoParametro.BAJO, Animo.SEDIENTA, 1),
+    ReglaAnimo("temperatura", EstadoParametro.ALTO, Animo.ACALORADA, 2),
+    ReglaAnimo("luz", EstadoParametro.BAJO, Animo.DEPRIMIDA, 3),
+]
 
 
 class RelojFijo(RelojPort):
@@ -307,14 +318,40 @@ class GeneradorTokenFalso(GeneradorTokenPort):
 
 
 class NotificadorDispositivoFalso(NotificadorDispositivoPort):
-    def __init__(self, exito: bool = True):
+    """`exito`: si la matera confirma el token. `conectada`: si la matera recibe avisos y animos.
+
+    Como el adaptador real, nunca lanza excepciones: devuelve False (LSP).
+    """
+
+    def __init__(self, exito: bool = True, conectada: bool = True):
         self.exito = exito
+        self.conectada = conectada
         self.entregados: list[tuple[str, str]] = []
+        self.desvinculados: list[str] = []
+        self.animos: list[tuple[str, Animo]] = []
 
     def entregar_token(self, mac: str, token: str) -> bool:
         if self.exito:
             self.entregados.append((mac, token))
         return self.exito
+
+    def avisar_desvinculacion(self, mac: str) -> bool:
+        if self.conectada:
+            self.desvinculados.append(mac)
+        return self.conectada
+
+    def notificar_animo(self, mac: str, animo: Animo) -> bool:
+        if self.conectada:
+            self.animos.append((mac, animo))
+        return self.conectada
+
+
+class ReglasAnimoEnMemoria(ReglasAnimoPort):
+    def __init__(self, reglas: list[ReglaAnimo] | None = None):
+        self.reglas = list(REGLAS_ANIMO if reglas is None else reglas)
+
+    def listar(self) -> list[ReglaAnimo]:
+        return list(self.reglas)
 
 
 class NotificadorEstadoFalso(NotificadorEstadoPort):
