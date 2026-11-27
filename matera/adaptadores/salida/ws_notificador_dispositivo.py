@@ -1,6 +1,7 @@
 import threading
 
 from matera.adaptadores.conexion_ws import ConexionWs
+from matera.dominio.modelo import Animo
 from matera.dominio.puertos.salida import NotificadorDispositivoPort
 
 
@@ -64,10 +65,15 @@ class WsNotificadorDispositivo(NotificadorDispositivoPort):
             if self._operando.get(mac) is conexion:
                 del self._operando[mac]
 
-    def enviar_a_dispositivo(self, mac: str, mensaje: dict) -> bool:
+    def avisar_desvinculacion(self, mac: str) -> bool:
+        return self._enviar(mac, {"tipo": "desvinculado"})
+
+    def notificar_animo(self, mac: str, animo: Animo) -> bool:
+        """{"tipo": "mascota", "animo": ...}: lo interpreta ConexionWS::alMensaje del firmware."""
+        return self._enviar(mac, {"tipo": "mascota", "animo": animo.value})
+
+    def _enviar(self, mac: str, mensaje: dict) -> bool:
+        """A la conexion autenticada ("operando") de esa MAC. False si no hay conexion o el envio fallo."""
         with self._candado:
             conexion = self._operando.get(mac)
         return conexion.enviar(mensaje) if conexion else False
-
-    def avisar_desvinculacion(self, mac: str) -> None:
-        self.enviar_a_dispositivo(mac, {"tipo": "desvinculado"})

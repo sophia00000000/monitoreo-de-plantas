@@ -53,6 +53,7 @@ def diagnostico_a_json(diagnostico: Diagnostico) -> dict:
             for p in diagnostico.parametros
         ],
         "recomendaciones": diagnostico.recomendaciones,
+        "animo": diagnostico.animo.value if diagnostico.animo else None,  # None en el diagnostico ad hoc
     }
 
 
@@ -65,6 +66,7 @@ def medicion_a_json(medicion: Medicion) -> dict:
         "origen": medicion.origen.value,
         "valores": dict(medicion.lectura.valores),
         "diagnostico": diagnostico_a_json(medicion.diagnostico),
+        "animo": medicion.diagnostico.animo.value if medicion.diagnostico.animo else None,
     }
 
 

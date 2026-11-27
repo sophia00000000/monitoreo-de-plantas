@@ -8,7 +8,8 @@ Protocolo WS (mensajes JSON):
   <- {"tipo": "token", "token": "..."}                        -> {"tipo": "token_recibido"}
   -> {"tipo": "autenticar", "mac": "...", "token": "..."}     <- {"tipo": "autenticado"}
   -> {"tipo": "lectura", "humedad": 45, "luz": 300, "temperatura": 22, "tomada_en": "ISO-8601"}
-                                                              <- {"tipo": "diagnostico", ...}
+                                                              <- {"tipo": "diagnostico", "animo": ..., ...}
+                                                              <- {"tipo": "mascota", "animo": "SEDIENTA"}
   Errores: <- {"tipo": "error", "error": CODIGO, "mensaje": "..."}
 """
 import json

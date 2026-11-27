@@ -57,6 +57,9 @@ class SensoresReales : public ISensores {
 };
 
 // ---------- ánimo local (respaldo hasta que el backend envíe "mascota") ----------
+// SOLO RESPALDO: se usa mientras no hay conexión o el backend aún no envió {"tipo":"mascota"}.
+// La regla de verdad vive en el backend (EvaluadorAnimo + tabla regla_animo) y usa los rangos
+// de la especie; estos umbrales fijos no la reemplazan ni deben crecer aquí.
 Animo animoSimulado(const Lectura& l) {
   if (l.humedad < 30) return Animo::SEDIENTA;
   if (l.temperatura > 30) return Animo::ACALORADA;

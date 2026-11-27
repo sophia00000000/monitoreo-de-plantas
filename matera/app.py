@@ -20,6 +20,7 @@ from matera.adaptadores.entrada.ws_front import WsFrontAdapter
 from matera.adaptadores.salida.auditoria_bd import SqliteAuditoria
 from matera.adaptadores.salida.base_datos import BaseDatosSqlite
 from matera.adaptadores.salida.historial_bd import RepoLecturas
+from matera.adaptadores.salida.reglas_animo_bd import ReglasAnimoBD
 from matera.adaptadores.salida.reloj import RelojSistema
 from matera.adaptadores.salida.seguridad import BcryptHasher, JwtAdapter, TokenOpacoGenerator
 from matera.adaptadores.salida.sqlite_repository import (
@@ -37,6 +38,7 @@ from matera.config import Configuracion
 from matera.dominio.modelo import PARAMETROS
 from matera.dominio.politica_propiedad import PoliticaPropiedad
 from matera.dominio.puertos.salida import ConsultarRangosPort
+from matera.dominio.servicios.animo import EvaluadorAnimo
 from matera.dominio.servicios.autenticacion import AutenticacionService
 from matera.dominio.servicios.catalogo import CatalogoService
 from matera.dominio.servicios.compartir import CompartirPlantaService
@@ -75,6 +77,7 @@ def create_app(config: Configuracion | None = None) -> Flask:
     dispositivos = SqliteDispositivos(bd)
     invitaciones = SqliteInvitaciones(bd)
     historial = RepoLecturas(bd)
+    reglas_animo = ReglasAnimoBD(bd)
     auditoria = SqliteAuditoria(bd)
     hasher = BcryptHasher(config.rondas_bcrypt)
     emisor_jwt = JwtAdapter(config.jwt_secreto, reloj, timedelta(minutes=config.jwt_minutos))
@@ -94,7 +97,8 @@ def create_app(config: Configuracion | None = None) -> Flask:
     )
     autenticacion_dispositivo = AutenticacionDispositivoService(dispositivos, generador_tokens, reloj, auditoria)
     registrar_lectura = RegistrarLecturaService(
-        dispositivos, plantas, evaluador, historial, notificador_estado, reloj
+        dispositivos, plantas, evaluador, historial, notificador_estado, reloj,
+        reglas_animo, EvaluadorAnimo(), notificador_dispositivo,
     )
     compartir = CompartirPlantaService(
         plantas, invitaciones, politica, generador_tokens, reloj, auditoria,
