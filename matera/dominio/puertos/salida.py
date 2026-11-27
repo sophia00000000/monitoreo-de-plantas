@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from matera.dominio.modelo import (
+    Animo,
     Dispositivo,
     EntradaAuditoria,
     Especie,
@@ -10,6 +11,7 @@ from matera.dominio.modelo import (
     Invitacion,
     Medicion,
     Planta,
+    ReglaAnimo,
     SolicitudEspecie,
     TipoVinculo,
     TokenOpaco,
@@ -165,6 +167,13 @@ class HistorialLecturasPort(ABC):
     ) -> list[Medicion]: ...
 
 
+class ReglasAnimoPort(ABC):
+    """Solo lectura (ISP): las reglas que traducen el diagnostico al animo de la mascota."""
+
+    @abstractmethod
+    def listar(self) -> list[ReglaAnimo]: ...
+
+
 # ---------------------------------------------------------------- seguridad
 
 class HasherPasswordPort(ABC):
@@ -196,12 +205,19 @@ class GeneradorTokenPort(ABC):
 # ---------------------------------------------------------------- notificaciones, tiempo y auditoria
 
 class NotificadorDispositivoPort(ABC):
+    """Mensajes del backend a la matera. Ningun metodo lanza excepciones: devuelven False si no se entrego."""
+
     @abstractmethod
     def entregar_token(self, mac: str, token: str) -> bool:
         """Entrega el token una sola vez por la conexion abierta. False si no se pudo confirmar."""
 
-    def avisar_desvinculacion(self, mac: str) -> None:
-        """Por defecto no hace nada."""
+    @abstractmethod
+    def avisar_desvinculacion(self, mac: str) -> bool:
+        """Avisa a la matera que se revoco su token (RA25). False si no estaba conectada."""
+
+    @abstractmethod
+    def notificar_animo(self, mac: str, animo: Animo) -> bool:
+        """Muestra el animo calculado en la pantalla de la matera. False si no estaba conectada."""
 
 
 class NotificadorEstadoPort(ABC):

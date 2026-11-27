@@ -74,6 +74,14 @@ class OrigenLectura(StrEnum):
     WS = "WS"
 
 
+class Animo(StrEnum):
+    """Animo de la mascota en la pantalla de la matera. Mismos valores que `enum class Animo` de tipos.h."""
+    FELIZ = "FELIZ"
+    SEDIENTA = "SEDIENTA"
+    ACALORADA = "ACALORADA"
+    DEPRIMIDA = "DEPRIMIDA"
+
+
 # ---------------------------------------------------------------- constantes de negocio
 
 VENTANA_EMPAREJAMIENTO = timedelta(minutes=10)  # RA22
@@ -112,14 +120,6 @@ def normalizar_mac(mac: str) -> str:
         raise DatosInvalidos("La MAC no tiene un formato valido.", campo="mac")
     hexa = re.sub(r"[^0-9A-F]", "", mac.upper())
     return ":".join(hexa[i:i + 2] for i in range(0, 12, 2))
-
-# NO SE AHHHHH
-def animo_desde(diagnostico):          # ejemplo de la regla, vivirá en el dominio
-    estados = {p.parametro: p.estado for p in diagnostico.parametros}
-    if estados.get("humedad") == EstadoParametro.BAJO: return "SEDIENTA"
-    if estados.get("temperatura") == EstadoParametro.ALTO: return "ACALORADA"
-    if estados.get("luz") == EstadoParametro.BAJO: return "DEPRIMIDA"
-    return "FELIZ"
 
 # ---------------------------------------------------------------- catalogo
 
@@ -164,13 +164,31 @@ class EvaluacionParametro:
 
 @dataclass(frozen=True)
 class Diagnostico:
+    """`animo` es None mientras no se haya evaluado (p. ej. el diagnostico ad hoc sin dispositivo).
+
+    Vive aqui y no en Medicion porque se deriva solo del diagnostico (EvaluadorAnimo) y se persiste
+    en la tabla `diagnostico`.
+    """
     especie: str
     estado_global: EstadoGlobal
     parametros: tuple[EvaluacionParametro, ...]
+    animo: Animo | None = None
 
     @property
     def recomendaciones(self) -> list[str]:
         return [p.recomendacion for p in self.parametros if p.recomendacion]
+
+
+@dataclass(frozen=True)
+class ReglaAnimo:
+    """Si `parametro` quedo en `estado`, la mascota muestra `animo`. Menor `prioridad` gana.
+
+    Agregar un animo nuevo = un valor en Animo y una fila en la tabla de reglas (OCP).
+    """
+    parametro: str
+    estado: EstadoParametro
+    animo: Animo
+    prioridad: int
 
 
 # ---------------------------------------------------------------- identidades y cuentas

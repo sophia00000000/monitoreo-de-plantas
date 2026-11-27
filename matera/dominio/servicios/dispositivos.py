@@ -141,10 +141,8 @@ class VincularDispositivoService(VincularDispositivoPort, EmparejarDispositivoPo
             raise RecursoNoEncontrado("La planta no tiene un dispositivo vinculado.")
         self._dispositivos.revocar(dispositivo.id)
         self._auditar(EventoAuditoria.DESVINCULACION, identidad.usuario_id, dispositivo.id, planta_id)
-        try:
-            self._notificador.avisar_desvinculacion(dispositivo.mac)   # nueva
-        except Exception:
-            pass   # si falla, el aparato se entera cuando falle su autenticación
+        # False si la matera no esta conectada: se entera cuando falle su siguiente autenticacion (RA25).
+        self._notificador.avisar_desvinculacion(dispositivo.mac)
 
     # ------------------------------------------------ auxiliares
 
