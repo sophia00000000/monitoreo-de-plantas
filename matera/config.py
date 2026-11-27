@@ -26,7 +26,7 @@ class Configuracion:
     espera_token_dispositivo: float = 10.0
     limite_intentos: int = 10
     ventana_limite_segundos: int = 60
-    origenes_cors: list[str] = field(default_factory=lambda: ["http://127.0.0.1:5500", "http://localhost:5500"])
+    origenes_cors: list[str] = field(default_factory=lambda: ["http://10.121.58.105:5500", "http://localhost:5500"])
     admin_usuario: str | None = None
     admin_email: str | None = None
     admin_password: str | None = None

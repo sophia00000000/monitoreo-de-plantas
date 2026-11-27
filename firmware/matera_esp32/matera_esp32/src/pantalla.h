@@ -1,9 +1,9 @@
 #pragma once
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <U8g2lib.h>
 #include <qrcode.h>
+#include "config.h"
 #include "tipos.h"
 
 // ---------- PUERTO: lo que la lógica necesita de una pantalla ----------
@@ -16,52 +16,60 @@ class IPantalla {
   virtual ~IPantalla() {}
 };
 
-// ---------- ADAPTADOR: OLED SSD1306 128x64 ----------
+// ---------- ADAPTADOR: OLED 128x64 con U8g2 ----------
 class PantallaOLED : public IPantalla {
-  Adafruit_SSD1306 d{128, 64, &Wire, -1};
+#ifdef SIMULACION
+  U8G2_SSD1306_128X64_NONAME_F_HW_I2C d{U8G2_R0, U8X8_PIN_NONE};
+#else
+  U8G2_SH1106_128X64_NONAME_F_HW_I2C d{U8G2_R0, U8X8_PIN_NONE};
+#endif
 
-  void gota(int x, int y) {                           // gota de agua o de sudor
-    d.fillTriangle(x, y - 5, x - 3, y, x + 3, y, SSD1306_WHITE);
-    d.fillCircle(x, y + 1, 3, SSD1306_WHITE);
+  void gota(int x, int y) {
+    d.drawTriangle(x, y - 5, x - 3, y, x + 3, y);
+    d.drawDisc(x, y + 1, 3);
   }
 
-  void cara(Animo a) {                                // cara centrada en (32, 32)
+  void cara(Animo a) {                                   // cara centrada en (32, 32)
     const int cx = 32, cy = 32;
-    d.drawCircle(cx, cy, 28, SSD1306_WHITE);
+    d.drawCircle(cx, cy, 28);
     switch (a) {
       case Animo::FELIZ:
-        d.fillCircle(cx - 10, cy - 8, 3, SSD1306_WHITE);
-        d.fillCircle(cx + 10, cy - 8, 3, SSD1306_WHITE);
-        d.drawCircleHelper(cx, cy + 2, 10, 0x4 | 0x8, SSD1306_WHITE);   // sonrisa
+        d.drawDisc(cx - 10, cy - 8, 3);
+        d.drawDisc(cx + 10, cy - 8, 3);
+        d.drawCircle(cx, cy + 2, 10, U8G2_DRAW_LOWER_LEFT | U8G2_DRAW_LOWER_RIGHT);   // sonrisa
         break;
       case Animo::SEDIENTA:
-        d.drawFastHLine(cx - 14, cy - 8, 8, SSD1306_WHITE);             // ojos cansados
-        d.drawFastHLine(cx + 6, cy - 8, 8, SSD1306_WHITE);
-        d.drawCircle(cx, cy + 10, 4, SSD1306_WHITE);                    // boca abierta
+        d.drawHLine(cx - 14, cy - 8, 8);
+        d.drawHLine(cx + 6, cy - 8, 8);
+        d.drawCircle(cx, cy + 10, 4);                                                 // boca abierta
         gota(cx + 20, cy - 14);
         break;
       case Animo::ACALORADA:
-        d.drawLine(cx - 14, cy - 12, cx - 8, cy - 8, SSD1306_WHITE);    // ojos > <
-        d.drawLine(cx - 14, cy - 4, cx - 8, cy - 8, SSD1306_WHITE);
-        d.drawLine(cx + 14, cy - 12, cx + 8, cy - 8, SSD1306_WHITE);
-        d.drawLine(cx + 14, cy - 4, cx + 8, cy - 8, SSD1306_WHITE);
-        d.drawLine(cx - 8, cy + 10, cx - 3, cy + 7, SSD1306_WHITE);     // boca ondulada
-        d.drawLine(cx - 3, cy + 7, cx + 3, cy + 10, SSD1306_WHITE);
-        d.drawLine(cx + 3, cy + 10, cx + 8, cy + 7, SSD1306_WHITE);
+        d.drawLine(cx - 14, cy - 12, cx - 8, cy - 8);
+        d.drawLine(cx - 14, cy - 4, cx - 8, cy - 8);
+        d.drawLine(cx + 14, cy - 12, cx + 8, cy - 8);
+        d.drawLine(cx + 14, cy - 4, cx + 8, cy - 8);
+        d.drawLine(cx - 8, cy + 10, cx - 3, cy + 7);
+        d.drawLine(cx - 3, cy + 7, cx + 3, cy + 10);
+        d.drawLine(cx + 3, cy + 10, cx + 8, cy + 7);
         gota(cx + 20, cy - 14);
         break;
       case Animo::DEPRIMIDA:
-        d.fillCircle(cx - 10, cy - 6, 2, SSD1306_WHITE);
-        d.fillCircle(cx + 10, cy - 6, 2, SSD1306_WHITE);
-        d.drawLine(cx - 15, cy - 11, cx - 7, cy - 14, SSD1306_WHITE);   // cejas caídas
-        d.drawLine(cx + 15, cy - 11, cx + 7, cy - 14, SSD1306_WHITE);
-        d.drawCircleHelper(cx, cy + 16, 8, 0x1 | 0x2, SSD1306_WHITE);   // boca triste
+        d.drawDisc(cx - 10, cy - 6, 2);
+        d.drawDisc(cx + 10, cy - 6, 2);
+        d.drawLine(cx - 15, cy - 11, cx - 7, cy - 14);
+        d.drawLine(cx + 15, cy - 11, cx + 7, cy - 14);
+        d.drawCircle(cx, cy + 16, 8, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);   // boca triste
         break;
     }
   }
 
  public:
-  void iniciar() override { d.begin(SSD1306_SWITCHCAPVCC, 0x3C); }
+  void iniciar() override {
+    Wire.begin(PIN_SDA, PIN_SCL);
+    d.begin();
+    d.setFont(u8g2_font_6x10_tf);
+  }
 
   void mostrarQR(const char* url) override {
     QRCode qr;
@@ -70,42 +78,38 @@ class PantallaOLED : public IPantalla {
       Serial.println("URL demasiado larga para QR versión 3");
       return;
     }
-    d.clearDisplay();
-    d.fillRect(0, 0, 128, 64, SSD1306_WHITE);                           // fondo claro
+    d.clearBuffer();
+    d.setDrawColor(1);
+    d.drawBox(0, 0, 128, 64);                            // fondo claro
+    d.setDrawColor(0);                                   // módulos oscuros
     const int e = 2, x0 = 3, y0 = (64 - qr.size * e) / 2;
     for (uint8_t y = 0; y < qr.size; y++)
       for (uint8_t x = 0; x < qr.size; x++)
-        if (qrcode_getModule(&qr, x, y))
-          d.fillRect(x0 + x * e, y0 + y * e, e, e, SSD1306_BLACK);
-    d.setTextColor(SSD1306_BLACK);
-    d.setTextSize(1);
-    d.setCursor(68, 14);
-    d.print("Escanea\npara\nvincular\ntu matera");
-    d.display();
+        if (qrcode_getModule(&qr, x, y)) d.drawBox(x0 + x * e, y0 + y * e, e, e);
+    d.drawStr(68, 16, "Escanea");
+    d.drawStr(68, 28, "para");
+    d.drawStr(68, 40, "vincular");
+    d.drawStr(68, 52, "tu matera");
+    d.setDrawColor(1);
+    d.sendBuffer();
   }
 
   void mostrarMascota(Animo animo, const Lectura& l) override {
     static const char* nombres[] = {"FELIZ", "SEDIENTA", "ACALORADA", "DEPRIMIDA"};
-    d.clearDisplay();
+    char s[24];
+    d.clearBuffer();
     cara(animo);
-    d.setTextColor(SSD1306_WHITE);
-    d.setTextSize(1);
-    d.setCursor(68, 4);
-    d.printf("H:%.0f%%\nL:%.0f lx\nT:%.1fC", l.humedad, l.luz, l.temperatura);
-    d.setCursor(68, 50);
-    d.print(nombres[(int)animo]);
-    d.display();
+    snprintf(s, sizeof(s), "H:%.0f%%", l.humedad);        d.drawStr(68, 12, s);
+    snprintf(s, sizeof(s), "L:%.0f lx", l.luz);           d.drawStr(68, 24, s);
+    snprintf(s, sizeof(s), "T:%.1fC", l.temperatura);     d.drawStr(68, 36, s);
+    d.drawStr(68, 60, nombres[(int)animo]);
+    d.sendBuffer();
   }
 
   void mostrarMensaje(const char* l1, const char* l2) override {
-    d.clearDisplay();
-    d.setTextColor(SSD1306_WHITE);
-    d.setTextSize(1);
-    d.setCursor(0, 20);
-    d.println(l1);
-    d.setCursor(0, 34);
-    d.println(l2);
-    d.display();
+    d.clearBuffer();
+    d.drawStr(0, 28, l1);
+    d.drawStr(0, 42, l2);
+    d.sendBuffer();
   }
-
 };

@@ -18,6 +18,7 @@ class WsNotificadorDispositivo(NotificadorDispositivoPort):
     """
 
     def __init__(self, espera_confirmacion: float = 10.0):
+        self._operando: dict[str, ConexionWs] = {}
         self._espera = espera_confirmacion
         self._abiertas: dict[str, _Emparejamiento] = {}
         self._candado = threading.Lock()
@@ -53,3 +54,20 @@ class WsNotificadorDispositivo(NotificadorDispositivoPort):
         if entregado:
             self.quitar(mac, actual.conexion)  # la ventana se cierra al vincular
         return entregado
+
+    def registrar_operando(self, mac: str, conexion: ConexionWs) -> None:
+        with self._candado:
+            self._operando[mac] = conexion
+
+    def quitar_operando(self, mac: str, conexion: ConexionWs) -> None:
+        with self._candado:
+            if self._operando.get(mac) is conexion:
+                del self._operando[mac]
+
+    def enviar_a_dispositivo(self, mac: str, mensaje: dict) -> bool:
+        with self._candado:
+            conexion = self._operando.get(mac)
+        return conexion.enviar(mensaje) if conexion else False
+
+    def avisar_desvinculacion(self, mac: str) -> None:
+        self.enviar_a_dispositivo(mac, {"tipo": "desvinculado"})

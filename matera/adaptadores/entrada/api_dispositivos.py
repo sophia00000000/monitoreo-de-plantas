@@ -79,7 +79,7 @@ class WsDispositivoAdapter:
 
     def atender(self, ws) -> None:
         conexion = ConexionWs(ws)
-        sesion = {"mac_emparejando": None, "dispositivo_id": None}
+        sesion = {"mac_emparejando": None, "dispositivo_id": None, "mac": None}
         try:
             while True:
                 crudo = conexion.recibir()
@@ -100,7 +100,10 @@ class WsDispositivoAdapter:
         except Exception:
             pass  # el dispositivo cerro la conexion
         finally:
-            mac = sesion["mac_emparejando"]
+            if sesion["mac"] is not None:
+              self._conexiones.quitar_operando(sesion["mac"], conexion)
+
+            mac = sesion["mac_emparejando"]  
             if mac is not None:
                 self._conexiones.quitar(mac, conexion)
                 self._emparejar.cancelar(mac)
@@ -130,7 +133,10 @@ class WsDispositivoAdapter:
             if not self._limitador.permitir(f"ws-dispositivo:{request.remote_addr}"):
                 raise CredencialesInvalidas("Demasiados intentos.")
             sesion["dispositivo_id"] = self._autenticar.autenticar(mensaje.get("mac"), mensaje.get("token"))
+            mac = normalizar_mac(mensaje.get("mac"))   # ya validada: si autenticó, es correcta
+            sesion["mac"] = mac
             sesion["mac_emparejando"] = None
+            self._conexiones.registrar_operando(mac, conexion)
             return {"tipo": "autenticado"}
 
         if tipo == "lectura":

@@ -200,6 +200,9 @@ class NotificadorDispositivoPort(ABC):
     def entregar_token(self, mac: str, token: str) -> bool:
         """Entrega el token una sola vez por la conexion abierta. False si no se pudo confirmar."""
 
+    def avisar_desvinculacion(self, mac: str) -> None:
+        """Por defecto no hace nada."""
+
 
 class NotificadorEstadoPort(ABC):
     @abstractmethod
@@ -217,3 +220,5 @@ class AuditoriaPort(ABC):
     @abstractmethod
     def registrar(self, entrada: EntradaAuditoria) -> None:
         """Nunca recibe ni guarda tokens (RA25)."""
+
+

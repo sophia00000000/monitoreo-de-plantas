@@ -17,7 +17,7 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    host = os.environ.get("MATERA_HOST", "127.0.0.1")
+    host = os.environ.get("MATERA_HOST", "10.121.58.105")
     puerto = int(os.environ.get("MATERA_PUERTO", "5000"))
     if puerto_ocupado(host, puerto):
         sys.exit(f"ERROR: ya hay un servidor escuchando en {host}:{puerto}. Cierrelo (Ctrl+C en su terminal) "
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     if ssl_context is None:
         print("AVISO: sin MATERA_SSL_CERT/MATERA_SSL_KEY el servidor usa HTTP/WS sin cifrar (solo desarrollo).")
     app.run(
-        host=host,
-        port=puerto,
+        host="0.0.0.0",
+        port=5000,
         debug=False,
         threaded=True,
         ssl_context=ssl_context,

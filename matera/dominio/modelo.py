@@ -113,6 +113,13 @@ def normalizar_mac(mac: str) -> str:
     hexa = re.sub(r"[^0-9A-F]", "", mac.upper())
     return ":".join(hexa[i:i + 2] for i in range(0, 12, 2))
 
+# NO SE AHHHHH
+def animo_desde(diagnostico):          # ejemplo de la regla, vivirá en el dominio
+    estados = {p.parametro: p.estado for p in diagnostico.parametros}
+    if estados.get("humedad") == EstadoParametro.BAJO: return "SEDIENTA"
+    if estados.get("temperatura") == EstadoParametro.ALTO: return "ACALORADA"
+    if estados.get("luz") == EstadoParametro.BAJO: return "DEPRIMIDA"
+    return "FELIZ"
 
 # ---------------------------------------------------------------- catalogo
 

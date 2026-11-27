@@ -1,0 +1,113 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vincular dispositivo - Matera</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="barra">
+    <div class="marca">Matera<span>diagnostico de plantas</span></div>
+</header>
+
+<main class="contenedor">
+    <section class="vista">
+        <h1>Vincular dispositivo</h1>
+
+        <div class="panel pila">
+            <p id="estado-mac" class="ayuda">
+                Comprobando dispositivo...
+            </p>
+            <p id="mac-dispositivo"></p>
+        </div>
+
+        <div id="mensaje" class="aviso oculto" role="status"></div>
+
+        <!-- Acceso -->
+        <section id="seccion-acceso" class="oculto">
+            <h2>Inicia sesión</h2>
+
+            <form id="form-login" class="panel pila">
+                <label>
+                    Usuario o correo
+                    <input name="usuario" autocomplete="username" required>
+                </label>
+
+                <label>
+                    Contraseña
+                    <input name="password" type="password"
+                           autocomplete="current-password" required>
+                </label>
+
+                <button type="submit">Entrar</button>
+            </form>
+
+            <h2>Crear cuenta</h2>
+
+            <form id="form-registro" class="panel pila">
+                <label>
+                    Nombre de usuario
+                    <input name="nombre" autocomplete="username" required>
+                </label>
+
+                <label>
+                    Correo
+                    <input name="email" type="email" autocomplete="email" required>
+                </label>
+
+                <label>
+                    Contraseña (mínimo 8 caracteres)
+                    <input name="password" type="password"
+                           minlength="8" autocomplete="new-password" required>
+                </label>
+
+                <button type="submit">Registrarme</button>
+            </form>
+        </section>
+
+        <!-- Registro de planta -->
+        <section id="seccion-planta" class="oculto">
+            <h2>Registra tu planta</h2>
+
+            <p class="ayuda">
+                Asigna un nombre a tu planta y selecciona su especie
+                para vincularla con el dispositivo.
+            </p>
+
+            <form id="form-planta" class="panel pila">
+                <label>
+                    Apodo
+                    <input name="apodo" maxlength="60"
+                           placeholder="Ej. Mi suculenta" required>
+                </label>
+
+                <label>
+                    Especie
+                    <select name="especie" id="especie" required>
+                        <option value="">Cargando especies...</option>
+                    </select>
+                </label>
+
+                <button type="submit" id="btn-vincular">
+                    Crear planta y vincular dispositivo
+                </button>
+            </form>
+        </section>
+
+        <!-- Resultado -->
+        <section id="seccion-resultado" class="oculto panel pila">
+            <h2>¡Proceso completado!</h2>
+            <p id="resultado-texto"></p>
+            <a href="index.html">
+                <button type="button">Ir a Mis plantas</button>
+            </a>
+        </section>
+    </section>
+</main>
+
+<script src="vincular.js"></script>
+</body>
+</html>
